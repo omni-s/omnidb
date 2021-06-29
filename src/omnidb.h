@@ -10,26 +10,120 @@
 #include <sql.h>
 #include <sqlext.h>
 
+// Convert a wide Unicode string to an UTF8 string
+
+#ifdef UNICODE
+  //
+  // Windows用(WideChar対応)
+  //
+
+  // OmniDb文字列型
+  typedef std::wstring OString;
+  // OmniDb文字列ストリーム
+  typedef std::wstringstream OStringStream;
+  // 標準出力
+  #define ocout std::wcout
+  // 文字列コピー
+  #define ostrcpy wcscpy
+  // 数値文字列変換
+  #define to_ostring(s) std::to_wstring((s))
+  // 文字列リテラル
+  #define _O(s) L##s
+  // JSON文字列変換(utf-8に変換)
+  std::string to_jsonstr(const std::wstring &wstr)
+  {
+    // utf-8専用。windowsだと切り替えないと駄目
+    if( wstr.empty() ) return std::string();
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+    std::string strTo( size_needed, 0 );
+    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
+    return strTo;
+  }
+#else
+  //
+  // UNIX用(utf-8ベース)
+  //
+  typedef std::string OString;
+    // OmniDb文字列ストリーム
+  typedef std::stringstream OStringStream;
+  // 標準出力
+  #define ocout std::cout
+  // 文字列コピー
+  #define ostrcpy strcpy
+  // O数値文字列変換
+  #define to_ostring(s) std::to_string((s))
+  // 文字列リテラル
+  #define _O(s) s
+  // JSON文字列変換(utf-8に変換) ※何もしない
+  #define to_jsonstr(s) s
+#endif
 
 class OmniDb : public Napi::ObjectWrap<OmniDb> {
 public:
-    static uv_mutex_t g_odbcMutex;
-    static SQLHENV g_hEnv;
 
-    static Napi::Object Init(Napi::Env env, Napi::Object exports);
-    static Napi::Object NewInstance(Napi::Env env, const Napi::CallbackInfo& info);
+  // 初期化
+  static Napi::Object Init(Napi::Env env, Napi::Object exports);
+  // OmniDb作成
+  static Napi::Object NewInstance(Napi::Env env, const Napi::CallbackInfo& info);
 
-    OmniDb(const Napi::CallbackInfo& info);
-    ~OmniDb();
+  OmniDb(const Napi::CallbackInfo& info);
+  ~OmniDb();
 
-    Napi::Value Connect(const Napi::CallbackInfo& info);
-    Napi::Value Drivers(const Napi::CallbackInfo& info);
-//    Napi::Value QueryInformation(const Napi::CallbackInfo& info);
-//    Napi::Value Tables(const Napi::CallbackInfo& info);
+  // DB接続
+  Napi::Value Connect(const Napi::CallbackInfo& info);
+  // DB切断
+  Napi::Value Disconnect(const Napi::CallbackInfo& info);
+  // ドライバ情報取得
+  Napi::Value Drivers(const Napi::CallbackInfo& info);
+  // テーブル情報取得
+  Napi::Value Tables(const Napi::CallbackInfo& info);
+  // カラム情報取得
+  Napi::Value Columns(const Napi::CallbackInfo& info);
+  // SQL情報取得
+  Napi::Value Query(const Napi::CallbackInfo& info);
 private:
-    static SQLTCHAR* NapiStringToSQLTCHAR(Napi::String string);
+  // 接続ハンドル
+  SQLHDBC m_hOdbc;
 
-    SQLHDBC m_hOdbc;
+  // DB切断
+  void _Disconnect();
+
+  // ODBCエラーメッセージ取得
+  OString ErrorMessage(const OString &msg, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError);
+
+  // SQL型名取得
+  static OString GetTypeName(SQLSMALLINT type);
+
+  // 型エラー作成(NAPI)
+  static Napi::TypeError CreateTypeError(napi_env env, const OString &msg);
+  // エラー作成(NAPI)
+  static Napi::Error CreateError(napi_env env, const OString &msg);
+
+  // 空文字列判定
+  static bool IsBlank(Napi::String v);
+
+  // NAPI文字列→SQLCHAR変換
+  static SQLTCHAR* NapiStringToSQLTCHAR(Napi::String string);
+
+  // 左空白削除
+  static OString& leftTrim(OString& str)
+  {
+    str.erase(0, str.find_first_not_of(_O(" ")));
+    return str;
+  }
+
+  // 右空白削除
+  static OString& rightTrim(OString& str)
+  {
+    str.erase(str.find_last_not_of(_O(" ")) + 1);
+    return str;
+  }
+
+  // 前後空白削除
+  static OString& trimString(OString& str)
+  {
+    return leftTrim(rightTrim(str));
+  }
 };
 
 #endif
