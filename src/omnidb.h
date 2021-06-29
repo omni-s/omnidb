@@ -24,11 +24,12 @@
   // 標準出力
   #define ocout std::wcout
   // 文字列コピー
-  #define ostrcpy wcscpy
+    #define ostrcpy(s1,s2) wcscpy((wchar_t *)(s1), (const wchar_t *)(s2))
   // 数値文字列変換
   #define to_ostring(s) std::to_wstring((s))
   // 文字列リテラル
   #define _O(s) L##s
+  #define _S2O(s) OString((const wchar_t *)(s))
   // JSON文字列変換(utf-8に変換)
   std::string to_jsonstr(const std::wstring &wstr)
   {
@@ -49,11 +50,12 @@
   // 標準出力
   #define ocout std::cout
   // 文字列コピー
-  #define ostrcpy strcpy
+  #define ostrcpy(s1,s2) strcpy((char *)(s1), (const char *)(s2))
   // O数値文字列変換
   #define to_ostring(s) std::to_string((s))
   // 文字列リテラル
   #define _O(s) s
+  #define _S2O(s) OString((const char *)(s))
   // JSON文字列変換(utf-8に変換) ※何もしない
   #define to_jsonstr(s) s
 #endif
@@ -106,21 +108,23 @@ private:
   static SQLTCHAR* NapiStringToSQLTCHAR(Napi::String string);
 
   // 左空白削除
-  static OString& leftTrim(OString& str)
+  static OString leftTrim(const OString& str)
   {
-    str.erase(0, str.find_first_not_of(_O(" ")));
-    return str;
+    OString res = str;
+    res.erase(0, res.find_first_not_of(_O(" ")));
+    return res;
   }
 
   // 右空白削除
-  static OString& rightTrim(OString& str)
+  static OString rightTrim(const OString& str)
   {
-    str.erase(str.find_last_not_of(_O(" ")) + 1);
-    return str;
+    OString res = str;
+    res.erase(res.find_last_not_of(_O(" ")) + 1);
+    return res;
   }
 
   // 前後空白削除
-  static OString& trimString(OString& str)
+  static OString trimString(const OString& str)
   {
     return leftTrim(rightTrim(str));
   }
