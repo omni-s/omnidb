@@ -328,7 +328,6 @@ void OmniDb::_Disconnect()
 Napi::Value OmniDb::Drivers(const Napi::CallbackInfo &info)
 {
   Napi::Env env = info.Env();
-  ocout << g_hEnv << _O("drivers\n");
   
   // ドライバ情報取得
   json drivers = json::array();
@@ -346,8 +345,7 @@ Napi::Value OmniDb::Drivers(const Napi::CallbackInfo &info)
       g_hEnv, direction,
       _driver, sizeof(_driver), &dret,
       _attribute, sizeof(_attribute), &aret))) {
-// うまく動かない
-
+// うまく動かない?
     json driver = json::object();
     driver["name"] = to_jsonstr(_S2O(_driver));
     driver["attribute"] = to_jsonstr(_S2O(_attribute));
@@ -675,10 +673,10 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
 
   SQLRETURN ret;
   Napi::Env env = info.Env();
-  
-  // query(queryString)
-  // のパラメータチェック
-  if(info.Length() != 1) {
+
+  // query(queryString, options)
+  // のパラメータチェック ※optionsは任意
+  if(info.Length() < 1) {
     CreateTypeError(
       env, 
       OString(_O("query(queryString) queryStringパラメータは必須です"))
@@ -692,6 +690,36 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
       OString(_O("queryString は文字列のみ指定できます"))
     ).ThrowAsJavaScriptException();
     return env.Null();
+  }
+
+  // options
+  bool option = (info.Length() >= 2 && !info[1].IsUndefined());
+  if(option && !info[1].IsObject() && !info[1].IsNull()) {
+    CreateTypeError(
+      env, 
+      OString(_O("options はオブジェクトのみ指定できます"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  //
+  // オプション取得
+  //
+  
+  // ラベルオプション
+  // ※LabelはibmiのANSIドライバだとうまく動かない
+  bool supportLabel = false;
+  if(option) {
+    // 取得条件取得
+    Napi::Object options = info[1].As<Napi::Object>();
+
+    // ラベルオプション
+    if(options.Has("label")) {
+      Napi::Boolean _label = options.Get("label").ToBoolean();
+      if(_label == true) {
+        supportLabel = true;
+      }
+    }
   }
 
   //
@@ -730,10 +758,15 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
 
     SQLSMALLINT numType = sizeof(QUERY_COLTYPES) / sizeof(QUERY_COLTYPE);
     for(int t = 0; t < numType; t++) {
+      if((QUERY_COLTYPES[t].type == SQL_DESC_LABEL) && !supportLabel) {
+        // ラベルサポートなしの場合は出力しない
+        continue;
+      }
+
       // カラムの属性値取得
       SQLTCHAR data[8192];
-      SQLSMALLINT dataSize;
-      SQLLEN attr;
+      SQLSMALLINT dataSize = 0;
+      SQLLEN attr = 0;
       memset(data, 0x00, sizeof(data));
 
       // カラム情報取得
@@ -815,6 +848,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
     param["size"] = paramSize;
     // nullを許可するか
     param["nullable"]= (nullable == SQL_NULLABLE) ? true : false;
+
     params.push_back(param);
   }
 

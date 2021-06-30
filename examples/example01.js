@@ -1,8 +1,10 @@
 const omnidb = require('../omnidb');
 const db = new omnidb();
 (async () => {
-  console.log('// connect');
+  console.log('// drivers');
+  console.log(await db.drivers());
 
+  console.log('// connect');
   console.log(await db.connect('dsn=phpq;uid=qsecofr;pwd=passw0rd;Database=C7054D00;CCSID=1208;EXTCOLINFO=1;'));
   
   console.log('// tables');
