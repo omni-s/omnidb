@@ -1,6 +1,6 @@
 {
   "name": "omnidb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "omnidb.js",
   "private": true,
