@@ -12,9 +12,9 @@ using namespace Napi;
 
 // 
 // ODBC制御
-//
-uv_mutex_t g_odbcMutex;
-SQLHENV g_hEnv = NULL;
+// TODO: 今の所はなくてもいいかなとは思うが、あとでちゃんとやる
+//uv_mutex_t g_odbcMutex;
+
 
 // 文字列長
 #define ODATA_LENGTH 256
@@ -175,20 +175,11 @@ Napi::Object OmniDb::NewInstance(Napi::Env env, const Napi::CallbackInfo &info)
 */
 Napi::Object OmniDb::Init(Napi::Env env, Napi::Object exports)
 {
-  //
-  // ライブラリ初期化
-  //
-  uv_mutex_init(&g_odbcMutex);
-
-  uv_mutex_lock(&g_odbcMutex);
-  SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &g_hEnv);
-  uv_mutex_unlock(&g_odbcMutex);
-  if (!SQL_SUCCEEDED(ret)) {
-    return exports;
-  }
-
-  // ODBC 3.0
-  SQLSetEnvAttr(g_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, SQL_IS_UINTEGER);
+  // TODO:初期化はここで。ただlockとunlockは必要な箇所で、、、後でちゃんとやる
+  // uv_mutex_init(&g_odbcMutex);
+  // uv_mutex_lock(&g_odbcMutex);
+  // uv_mutex_unlock(&g_odbcMutex);
+  
 
   //
   // 外部公開用メソッド登録
@@ -216,7 +207,15 @@ Napi::Object OmniDb::Init(Napi::Env env, Napi::Object exports)
 */
 OmniDb::OmniDb(const Napi::CallbackInfo &info) : Napi::ObjectWrap<OmniDb>(info)
 {
+  m_hEnv = NULL;
   m_hOdbc = NULL;
+
+  //
+  // ライブラリ初期化
+  //
+  SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
+  // ODBC 3.0
+  SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER)SQL_OV_ODBC3, SQL_IS_UINTEGER);
 };
 
 
@@ -229,13 +228,10 @@ OmniDb::~OmniDb()
     _Disconnect();
   }
 
-  uv_mutex_lock(&g_odbcMutex);
-
-  if (g_hEnv) {
-    SQLFreeHandle(SQL_HANDLE_ENV, g_hEnv);
-    g_hEnv = NULL;
+  if (m_hEnv) {
+    SQLFreeHandle(SQL_HANDLE_ENV, m_hEnv);
+    m_hEnv = NULL;
   }
-  uv_mutex_unlock(&g_odbcMutex);  
 };
 
 
@@ -268,16 +264,17 @@ Napi::Value OmniDb::Connect(const Napi::CallbackInfo &info)
     return env.Null();
   }
 
+  // 接続している状態で呼ばれた場合は一旦切断
+  _Disconnect();
+
   Napi::String _connectionString = info[0].As<Napi::String>();
   std::unique_ptr<SQLTCHAR> connectString(OmniDb::NapiStringToSQLTCHAR(_connectionString));
 
   // DB接続
   // https://www.ibm.com/docs/ja/i/7.3?topic=details-connection-string-keywords
-  uv_mutex_lock(&g_odbcMutex);
   SQLHDBC hOdbc;
-  SQLAllocHandle(SQL_HANDLE_DBC, g_hEnv, &hOdbc);
+  SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &hOdbc);
   SQLRETURN ret = SQLDriverConnect(hOdbc, NULL, connectString.get(), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
-  uv_mutex_unlock(&g_odbcMutex);
   if(!SQL_SUCCEEDED(ret)) {
     OString e = ErrorMessage(_O("SQLDriverConnect エラー"), ret, SQL_HANDLE_DBC, hOdbc);
     SQLFreeHandle(SQL_HANDLE_DBC, hOdbc);
@@ -339,10 +336,9 @@ Napi::Value OmniDb::Drivers(const Napi::CallbackInfo &info)
   SQLRETURN ret;
 
   SQLUSMALLINT direction = SQL_FETCH_FIRST;
-  uv_mutex_lock(&g_odbcMutex);
   while(
     SQL_SUCCEEDED(ret = SQLDrivers(
-      g_hEnv, direction,
+      m_hEnv, direction,
       _driver, sizeof(_driver), &dret,
       _attribute, sizeof(_attribute), &aret))) {
 // うまく動かない?
@@ -352,7 +348,6 @@ Napi::Value OmniDb::Drivers(const Napi::CallbackInfo &info)
     drivers.push_back(driver);
     direction = SQL_FETCH_NEXT;
   }
-  uv_mutex_unlock(&g_odbcMutex);
 
   //
   // JSON文字列として出力

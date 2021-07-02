@@ -69,7 +69,7 @@ public:
   static Napi::Object NewInstance(Napi::Env env, const Napi::CallbackInfo& info);
 
   OmniDb(const Napi::CallbackInfo& info);
-  ~OmniDb();
+  ~OmniDb() override;
 
   // DB接続
   Napi::Value Connect(const Napi::CallbackInfo& info);
@@ -86,6 +86,8 @@ public:
 private:
   // 接続ハンドル
   SQLHDBC m_hOdbc;
+  // ODBC環境
+  SQLHENV m_hEnv;
 
   // DB切断
   void _Disconnect();
