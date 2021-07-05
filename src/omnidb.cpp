@@ -663,7 +663,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
     // テーブル名（物理的な割当がある場合）
     { SQL_DESC_BASE_TABLE_NAME, "table", CHAR_ATTR },
     // カラム名（物理的な割当がある場合）
-    { SQL_DESC_BASE_COLUMN_NAME, "colomn", CHAR_ATTR },
+    { SQL_DESC_BASE_COLUMN_NAME, "column", CHAR_ATTR },
   };
 
   SQLRETURN ret;
