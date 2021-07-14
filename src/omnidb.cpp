@@ -352,7 +352,7 @@ Napi::Value OmniDb::Drivers(const Napi::CallbackInfo &info)
   //
   // JSON文字列として出力
   //
-  return Napi::String::New(env, drivers.dump());
+  return Napi::String::New(env, drivers.dump(-1, ' ', true, json::error_handler_t::replace));
 }
 
 
@@ -476,7 +476,7 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo& info)
   //
   // JSON文字列として返却
   //
-  return Napi::String::New(env, tables.dump());
+  return Napi::String::New(env, tables.dump(-1, ' ', true, json::error_handler_t::replace));
 }
 
 
@@ -620,7 +620,8 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   //
   // カラム情報をJSON文字列として返却
   //
-  return Napi::String::New(env, cols.dump());
+  return Napi::String::New(env, cols.dump(-1, ' ', true, json::error_handler_t::replace));
+
 }
 
 
@@ -853,7 +854,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
   json result = json::object();
   result["columns"] = cols;
   result["params"] = params;
-  return Napi::String::New(env, result.dump());
+  return Napi::String::New(env, result.dump(-1, ' ', true, json::error_handler_t::replace));
 }
 
 

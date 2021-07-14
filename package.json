@@ -1,11 +1,12 @@
 {
   "name": "omnidb",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "main": "omnidb.js",
   "private": true,
   "gypfile": true,
   "scripts": {
+    "dev": "node examples/example01.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
