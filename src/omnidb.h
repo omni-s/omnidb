@@ -97,6 +97,8 @@ private:
 
   // SQL型名取得
   static OString GetTypeName(SQLSMALLINT type);
+  // SQL型属性
+  static OString GetTypeClassName(SQLSMALLINT type);
 
   // 型エラー作成(NAPI)
   static Napi::TypeError CreateTypeError(napi_env env, const OString &msg);

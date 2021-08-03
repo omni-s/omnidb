@@ -24,6 +24,7 @@ using namespace Napi;
 typedef struct SQLTYPENAME {
   SQLSMALLINT type;
   const SQLTCHAR *name;
+  const SQLTCHAR *className;
 } SQLTYPENAME;
 
 // SQLのタイプ名
@@ -31,63 +32,63 @@ typedef struct SQLTYPENAME {
 // https://docs.microsoft.com/ja-jp/sql/odbc/reference/appendixes/sql-data-types?view=sql-server-ver15
 const SQLTYPENAME SQLTYPENAMES[] = {
   // CHAR (n) : 固定長文字列の文字列。
-  { SQL_CHAR, (SQLTCHAR *)_O("SQL_CHAR") },
+  { SQL_CHAR, (SQLTCHAR *)_O("SQL_CHAR"), (SQLTCHAR *)_O("String")},
   // VARCHAR (n) : 最大文字列長 n の可変長文字列。
-  { SQL_VARCHAR, (SQLTCHAR *)_O("SQL_VARCHAR") },
+  { SQL_VARCHAR, (SQLTCHAR *)_O("SQL_VARCHAR"), (SQLTCHAR *)_O("String") },
   // LONG VARCHAR : 可変長文字データ。 最大長は、データソースに依存します。
-  { SQL_LONGVARCHAR, (SQLTCHAR *)_O("SQL_LONGVARCHAR") },
+  { SQL_LONGVARCHAR, (SQLTCHAR *)_O("SQL_LONGVARCHAR"), (SQLTCHAR *)_O("String") },
   // WCHAR (n) : 固定長文字列の Unicode 文字列の長さ n
-  { SQL_WCHAR, (SQLTCHAR *)_O("SQL_WCHAR") },
+  { SQL_WCHAR, (SQLTCHAR *)_O("SQL_WCHAR"), (SQLTCHAR *)_O("String") },
   // VARWCHAR (n) : 最大文字列長を持つ Unicode 可変長文字列 n
-  { SQL_WVARCHAR, (SQLTCHAR *)_O("SQL_WVARCHAR") },
+  { SQL_WVARCHAR, (SQLTCHAR *)_O("SQL_WVARCHAR"), (SQLTCHAR *)_O("String") },
   // LONGWVARCHAR : Unicode 可変長文字データ。 最大長はデータソースに依存します
-  { SQL_WLONGVARCHAR, (SQLTCHAR *)_O("SQL_WLONGVARCHAR") },
+  { SQL_WLONGVARCHAR, (SQLTCHAR *)_O("SQL_WLONGVARCHAR"), (SQLTCHAR *)_O("String") },
   // DECIMAL (p,s) : 少なくとも p と scale s の有効桁数を持つ符号付きの正確な数値 。
   // (最大有効桁数はドライバーで定義されています)。
   // (1 <= p <= 15;s <= p)。4/4
-  { SQL_DECIMAL, (SQLTCHAR *)_O("SQL_DECIMAL") },
+  { SQL_DECIMAL, (SQLTCHAR *)_O("SQL_DECIMAL"), (SQLTCHAR *)_O("Number") },
   // NUMERIC (p,s) : 精度が p で小数点以下桁数が s の符号付きの正確な数値
   // (1 <= p <= 15;s <= p)。4/4
-  { SQL_NUMERIC, (SQLTCHAR *)_O("SQL_NUMERIC") },
+  { SQL_NUMERIC, (SQLTCHAR *)_O("SQL_NUMERIC"), (SQLTCHAR *)_O("Number") },
   // SMALLINT : 精度が5および小数点以下桁数が0の numeric 値
   // (符号付き:-32768 <= n <= 32767、unsigned: 0 <= n <= 65535) [3]。
-  { SQL_SMALLINT, (SQLTCHAR *)_O("SQL_SMALLINT") },
+  { SQL_SMALLINT, (SQLTCHAR *)_O("SQL_SMALLINT"), (SQLTCHAR *)_O("Number") },
   // INTEGER : 有効桁数が10および小数点以下桁数が0の正確な数値
   // (符号付き:-2 [31] <= n <= 2 [31]-1、符号なし: 0 <= n <= 2 [32]-1) [3]。
-  { SQL_INTEGER, (SQLTCHAR *)_O("SQL_INTEGER") },
+  { SQL_INTEGER, (SQLTCHAR *)_O("SQL_INTEGER"), (SQLTCHAR *)_O("Number") },
   // real : バイナリ精度 24 (0 または絶対値が 10 [-38] ~ 10 [38]) の符号付き概数値。
-  { SQL_REAL, (SQLTCHAR *)_O("SQL_REAL") },
+  { SQL_REAL, (SQLTCHAR *)_O("SQL_REAL"), (SQLTCHAR *)_O("Number") },
   // FLOAT (p) : 少なくとも p のバイナリ有効桁数を持つ、符号付きの概数型の数値。
   // (最大有効桁数はドライバーで定義されています)。5/5
-  { SQL_FLOAT, (SQLTCHAR *)_O("SQL_FLOAT") },
+  { SQL_FLOAT, (SQLTCHAR *)_O("SQL_FLOAT"), (SQLTCHAR *)_O("Number") },
   // DOUBLE PRECISION : バイナリ精度 53 (0 または絶対値が 10 [-308] ~ 10 [308])
   // の符号付き概数。数値。
-  { SQL_DOUBLE, (SQLTCHAR *)_O("SQL_DOUBLE") },
+  { SQL_DOUBLE, (SQLTCHAR *)_O("SQL_DOUBLE"), (SQLTCHAR *)_O("Number") },
   // BIT : 1ビットのバイナリデータ。8
-  { SQL_BIT, (SQLTCHAR *)_O("SQL_BIT") },
+  { SQL_BIT, (SQLTCHAR *)_O("SQL_BIT"), (SQLTCHAR *)_O("Number") },
   // TINYINT : 精度3および小数点以下桁数が0の正確な数値 
   // (符号付き:-128 <= n <= 127、符号なし: 0 <= n <= 255) [3]。
-  { SQL_TINYINT, (SQLTCHAR *)_O("SQL_TINYINT") },
+  { SQL_TINYINT, (SQLTCHAR *)_O("SQL_TINYINT"), (SQLTCHAR *)_O("Number") },
   // bigint : 精度が 19 (符号付きの場合) または 20 (符号なしの場合) 
   // および小数点以下桁数 0 (符号付きの場合) およびスケール 0 
   // (符号付き:-2 [63] <= n <= 2 [63]-1、符号なし: 0 <= n <= 2 [64]-1) [3]、[9]
-  { SQL_BIGINT, (SQLTCHAR *)_O("SQL_BIGINT") },
+  { SQL_BIGINT, (SQLTCHAR *)_O("SQL_BIGINT"), (SQLTCHAR *)_O("Number") },
   // バイナリ (n) : 固定長 n のバイナリデータ。ませ
-  { SQL_BINARY, (SQLTCHAR *)_O("SQL_BINARY") },
+  { SQL_BINARY, (SQLTCHAR *)_O("SQL_BINARY"), (SQLTCHAR *)_O("Binary") },
   // VARBINARY (n) : 最大長 n の可変長バイナリデータ。 最大値は、ユーザーによって
   // 設定されます。
-  { SQL_VARBINARY, (SQLTCHAR *)_O("SQL_VARBINARY") },
+  { SQL_VARBINARY, (SQLTCHAR *)_O("SQL_VARBINARY"), (SQLTCHAR *)_O("Binary") },
   // LONG VARBINARY : 可変長バイナリ データ。 最大長は、データソースに依存します。
-  { SQL_LONGVARBINARY, (SQLTCHAR *)_O("SQL_LONGVARBINARY") },
+  { SQL_LONGVARBINARY, (SQLTCHAR *)_O("SQL_LONGVARBINARY"), (SQLTCHAR *)_O("Binary") },
   // DATE : グレゴリオ暦の規則に準拠した年、月、日の各フィールド。 
   // (この付録の後半の「 グレゴリオ暦の制約」を参照してください)。
-  { SQL_TYPE_DATE, (SQLTCHAR *)_O("SQL_TYPE_DATE") },
+  { SQL_TYPE_DATE, (SQLTCHAR *)_O("SQL_TYPE_DATE"), (SQLTCHAR *)_O("Date") },
   // 時間 (p) : 時間、分、および秒のフィールド。有効な値は 00 ~ 23 の時間、00 ~ 59
   // の有効な値、および 00 ~ 61 の秒の有効な値です。 有効桁数 p 秒の有効桁数を示します。
-  { SQL_TYPE_TIME, (SQLTCHAR *)_O("SQL_TYPE_TIME") },
+  { SQL_TYPE_TIME, (SQLTCHAR *)_O("SQL_TYPE_TIME"), (SQLTCHAR *)_O("Time") },
   // タイムスタンプ (p) : 日付と時刻のデータ型に対して定義されている有効な値を持つ
   // 年、月、日、時、分、および秒の各フィールド。
-  { SQL_TYPE_TIMESTAMP, (SQLTCHAR *)_O("SQL_TYPE_TIMESTAMP") },
+  { SQL_TYPE_TIMESTAMP, (SQLTCHAR *)_O("SQL_TYPE_TIMESTAMP"), (SQLTCHAR *)_O("DateTime") },
 /* unix-odbcで未定義だった
   // UTCDATETIME : Year、month、day、hour、minute、second、utchour、utcminute
   // の各フィールド。 Utchour フィールドと utcminute フィールドの精度は1/10 マイクロ秒です。
@@ -97,40 +98,40 @@ const SQLTYPENAME SQLTYPENAMES[] = {
   { SQL_TYPE_UTCTIME, (SQLTCHAR *)_O("SQL_TYPE_UTCTIME" },
 */
   // 間隔月 (p) : 2つの日付の間の月数。 p は、間隔の有効桁数です。
-  { SQL_INTERVAL_MONTH, (SQLTCHAR *)_O("SQL_INTERVAL_MONTH") },
+  { SQL_INTERVAL_MONTH, (SQLTCHAR *)_O("SQL_INTERVAL_MONTH"), (SQLTCHAR *)_O("Number") },
   // 間隔の年 (p) : 2つの日付間の年数 p は、間隔の有効桁数です。
-  { SQL_INTERVAL_YEAR, (SQLTCHAR *)_O("SQL_INTERVAL_YEAR") },
+  { SQL_INTERVAL_YEAR, (SQLTCHAR *)_O("SQL_INTERVAL_YEAR"), (SQLTCHAR *)_O("Number") },
   // 間隔の年 (p) から月 : 2つの日付間の年と月の数。 p は、間隔の有効桁数です。
-  { SQL_INTERVAL_YEAR_TO_MONTH, (SQLTCHAR *)_O("SQL_INTERVAL_YEAR_TO_MONTH") },
+  { SQL_INTERVAL_YEAR_TO_MONTH, (SQLTCHAR *)_O("SQL_INTERVAL_YEAR_TO_MONTH"), (SQLTCHAR *)_O("Number") },
   // 間隔の日 (p) : 2つの日付の間の日数 p は、間隔の有効桁数です。
-  { SQL_INTERVAL_DAY, (SQLTCHAR *)_O("SQL_INTERVAL_DAY") },
+  { SQL_INTERVAL_DAY, (SQLTCHAR *)_O("SQL_INTERVAL_DAY"), (SQLTCHAR *)_O("Number") },
   // 間隔 (時間) (p) : 2つの日付/時刻の間の時間数。 p は、間隔の有効桁数です。
-  { SQL_INTERVAL_HOUR, (SQLTCHAR *)_O("SQL_INTERVAL_HOUR") },
+  { SQL_INTERVAL_HOUR, (SQLTCHAR *)_O("SQL_INTERVAL_HOUR"), (SQLTCHAR *)_O("Number") },
   // 間隔 (分) (p) : 2つの日付/時刻の間の分数 p は、間隔の有効桁数です。
-  { SQL_INTERVAL_MINUTE, (SQLTCHAR *)_O("SQL_INTERVAL_MINUTE") },
+  { SQL_INTERVAL_MINUTE, (SQLTCHAR *)_O("SQL_INTERVAL_MINUTE"), (SQLTCHAR *)_O("Number") },
   // INTERVAL 秒 (p,q) : 2つの日付/時刻の間の秒数。 p は間隔の先頭の有効桁数
   // で、 q は間隔の秒の有効桁数です。
-  { SQL_INTERVAL_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_SECOND") },
+  { SQL_INTERVAL_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_SECOND"), (SQLTCHAR *)_O("Number") },
   // 間隔の日 (p) から時間 : 2つの日付/時刻の間の日数/時間。 p は、間隔の
   // 有効桁数です。
-  { SQL_INTERVAL_DAY_TO_HOUR, (SQLTCHAR *)_O("SQL_INTERVAL_DAY_TO_HOUR") },
+  { SQL_INTERVAL_DAY_TO_HOUR, (SQLTCHAR *)_O("SQL_INTERVAL_DAY_TO_HOUR"), (SQLTCHAR *)_O("Number") },
   // 間隔の日 (p) から分 : 2つの日付/時刻の間の日数/時間/分 p は、間隔の
   // 有効桁数です。
-  { SQL_INTERVAL_DAY_TO_MINUTE, (SQLTCHAR *)_O("SQL_INTERVAL_DAY_TO_MINUTE") },
+  { SQL_INTERVAL_DAY_TO_MINUTE, (SQLTCHAR *)_O("SQL_INTERVAL_DAY_TO_MINUTE"), (SQLTCHAR *)_O("Number") },
   // 間隔の日 (p) から秒 (q) : 2つの日付/時刻の間の日数/時間/分/秒 p は間隔
   // の先頭の有効桁数で、 q は間隔の秒の有効桁数です。
-  { SQL_INTERVAL_DAY_TO_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_DAY_TO_SECOND") },
+  { SQL_INTERVAL_DAY_TO_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_DAY_TO_SECOND"), (SQLTCHAR *)_O("Number") },
   // INTERVAL 時間 (p) から分 : 2つの日付/時刻の間の時間数/分 p は、間隔の
   // 有効桁数です。
-  { SQL_INTERVAL_HOUR_TO_MINUTE, (SQLTCHAR *)_O("SQL_INTERVAL_HOUR_TO_MINUTE") },
+  { SQL_INTERVAL_HOUR_TO_MINUTE, (SQLTCHAR *)_O("SQL_INTERVAL_HOUR_TO_MINUTE"), (SQLTCHAR *)_O("Number") },
   // INTERVAL 時間 (p) から秒 (q) : 2つの日付/時刻の間の時間数/分/秒。
   // p は間隔の先頭の有効桁数で、 q は間隔の秒の有効桁数です。
-  { SQL_INTERVAL_HOUR_TO_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_HOUR_TO_SECOND") },
+  { SQL_INTERVAL_HOUR_TO_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_HOUR_TO_SECOND"), (SQLTCHAR *)_O("Number") },
   // 間隔 (分) (p) から秒 (q) : 2つの日付/時刻の間の分数 (秒単位)。
   // p は間隔の先頭の有効桁数で、 q は間隔の秒の有効桁数です。
-  { SQL_INTERVAL_MINUTE_TO_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_MINUTE_TO_SECOND") },
+  { SQL_INTERVAL_MINUTE_TO_SECOND, (SQLTCHAR *)_O("SQL_INTERVAL_MINUTE_TO_SECOND"), (SQLTCHAR *)_O("Number") },
   // GUID : 固定長 GUID。
-  { SQL_GUID, (SQLTCHAR *)_O("SQL_GUID") }
+  { SQL_GUID, (SQLTCHAR *)_O("SQL_GUID"), (SQLTCHAR *)_O("Guid") }
 };
 
 
@@ -469,6 +470,7 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo& info)
     table["schema"] = to_jsonstr(_S2O(colSchema.get()));
     table["name"] = to_jsonstr(_S2O(colTable.get()));
     table["type"] = to_jsonstr(_S2O(colTableType.get()));
+    table["type"] = to_jsonstr(_S2O(colTableType.get()));
     table["remarks"] = to_jsonstr(trimString(_S2O(colRemarks.get())));
     tables.push_back(table);
   }
@@ -608,6 +610,7 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
     col["table"] = to_jsonstr(_S2O(colTable.get()));
     col["name"] = to_jsonstr(_S2O(colColumn.get()));
     col["type"] = to_jsonstr(GetTypeName(colType));
+    col["typeClass"] = to_jsonstr(GetTypeClassName(colType));
     col["size"] = colSize;
     col["decimalDigits"] = colDecimalDigits;
     col["numPrec"] = colNumPrec;
@@ -657,6 +660,8 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
     { SQL_DESC_AUTO_UNIQUE_VALUE, "autoIncliment", NUM_ATTR },
     // サイズ
     { SQL_DESC_LENGTH, "size", NUM_ATTR },
+    // 10進数精度
+    { SQL_DESC_SCALE, "decimalDigits", NUM_ATTR },
     // カタログ名（物理的な割当がある場合）
     { SQL_DESC_CATALOG_NAME, "catalog", CHAR_ATTR },
     // スキーマ名（物理的な割当がある場合）
@@ -789,6 +794,8 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
           case SQL_DESC_TYPE:
             // データ型
             column[prop] = to_jsonstr(GetTypeName(attr));
+            // 型は特別に型クラスも出力
+            column["typeClass"] = to_jsonstr(GetTypeClassName(attr));
             break;
           default:
             // 上記以外の数値型の場合はそのまま転送
@@ -840,8 +847,12 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
 
     // データ型
     param["type"] = to_jsonstr(GetTypeName(dataType));
+    // 型分類
+    param["typeClass"] = to_jsonstr(GetTypeClassName(dataType));
     // サイズ
     param["size"] = paramSize;
+    // 10進数
+    param["decimalDigits"] = decimalDigits;
     // nullを許可するか
     param["nullable"]= (nullable == SQL_NULLABLE) ? true : false;
 
@@ -886,6 +897,7 @@ OString OmniDb::ErrorMessage(const OString &msg, SQLRETURN retcode, SQLSMALLINT 
       if (sqlmsg.length() > 0) {
         sqlmsg += _O(", ");
       }
+      
       OString p = _S2O(state);
       p += _O(":");
       p += _S2O(odbcmsg);
@@ -938,6 +950,27 @@ OString OmniDb::GetTypeName(SQLSMALLINT type)
   for(int i = 0; i < numType; i++) {
     if(SQLTYPENAMES[i].type == type) {
         result = _S2O(SQLTYPENAMES[i].name);
+        break;
+    }
+  }
+  return result;
+}
+
+
+/**
+* SQL ODBC型名に対するクラス名を取得します
+*
+* @param[in] type ODBCの型
+* @return OString クラス名
+*/
+OString OmniDb::GetTypeClassName(SQLSMALLINT type)
+{
+  OString result = OString(_O(""));
+
+  int numType = sizeof(SQLTYPENAMES) / sizeof(SQLTYPENAME);
+  for(int i = 0; i < numType; i++) {
+    if(SQLTYPENAMES[i].type == type) {
+        result = _S2O(SQLTYPENAMES[i].className);
         break;
     }
   }
