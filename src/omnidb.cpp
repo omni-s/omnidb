@@ -135,6 +135,22 @@ const SQLTYPENAME SQLTYPENAMES[] = {
 };
 
 
+// ロケールのカテゴリ名
+typedef struct LOCALE_NAME {
+  int category;
+  const SQLTCHAR *name;
+} LOCALE_NAME;
+
+const LOCALE_NAME LOCALE_NAMES[] = {
+  { LC_ALL,       (const SQLTCHAR *)_O("LC_ALL")      },
+  { LC_COLLATE,   (const SQLTCHAR *)_O("LC_COLLATE")  },
+  { LC_CTYPE,     (const SQLTCHAR *)_O("LC_CTYPE")    },
+  { LC_MONETARY,  (const SQLTCHAR *)_O("LC_ALL")      },
+  { LC_NUMERIC,   (const SQLTCHAR *)_O("LC_NUMERIC")  },
+  { LC_TIME,      (const SQLTCHAR *)_O("LC_TIME")     },
+};
+
+
 //
 // SQLHSTMTをunique_ptrの解放で使うための型
 // 
@@ -193,6 +209,7 @@ Napi::Object OmniDb::Init(Napi::Env env, Napi::Object exports)
       InstanceMethod("query", &OmniDb::Query),
       InstanceMethod("tables", &OmniDb::Tables),
       InstanceMethod("columns", &OmniDb::Columns),
+      InstanceMethod("setLocale", &OmniDb::SetLocale),
   });
 
   Napi::FunctionReference *constructor = new Napi::FunctionReference();
@@ -277,7 +294,7 @@ Napi::Value OmniDb::Connect(const Napi::CallbackInfo &info)
   SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &hOdbc);
   SQLRETURN ret = SQLDriverConnect(hOdbc, NULL, connectString.get(), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
   if(!SQL_SUCCEEDED(ret)) {
-    OString e = ErrorMessage(_O("SQLDriverConnect エラー"), ret, SQL_HANDLE_DBC, hOdbc);
+    OString e = ErrorMessage(_O("SQLDriverConnect"), ret, SQL_HANDLE_DBC, hOdbc);
     SQLFreeHandle(SQL_HANDLE_DBC, hOdbc);
     CreateError(env, e).ThrowAsJavaScriptException();
     return env.Null();
@@ -432,7 +449,7 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo& info)
       tableType.get(), tableType.get() == nullptr ? 0 : SQL_NTS))) {
     CreateError(
       env,
-      ErrorMessage(_O("SQLTables エラー"), ret, SQL_HANDLE_STMT, stmt.get())
+      ErrorMessage(_O("SQLTables"), ret, SQL_HANDLE_STMT, stmt.get())
     ).ThrowAsJavaScriptException();
     return env.Null();
   }  
@@ -554,7 +571,7 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
       column.get(), column.get() == nullptr ? 0 : SQL_NTS))) {
     CreateError(
       env,
-      ErrorMessage(_O("SQLColumns エラー"), ret, SQL_HANDLE_STMT, stmt.get())
+      ErrorMessage(_O("SQLColumns"), ret, SQL_HANDLE_STMT, stmt.get())
     ).ThrowAsJavaScriptException();
     return env.Null();
   }  
@@ -735,7 +752,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
   if(!SQL_SUCCEEDED(ret = SQLPrepare(stmt.get(), queryString.get(), SQL_NTS))) {
     CreateError(
       env,
-      ErrorMessage(_O("SQLPrepare エラー"), ret, SQL_HANDLE_STMT, stmt.get())
+      ErrorMessage(_O("SQLPrepare"), ret, SQL_HANDLE_STMT, stmt.get())
     ).ThrowAsJavaScriptException();
     return env.Null();
   }
@@ -749,7 +766,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
   if(!SQL_SUCCEEDED(ret = SQLNumResultCols(stmt.get(), &numCol))) {
     CreateError(
       env,
-      ErrorMessage(_O("SQLNumResultCols エラー"), ret, SQL_HANDLE_STMT, stmt.get())
+      ErrorMessage(_O("SQLNumResultCols"), ret, SQL_HANDLE_STMT, stmt.get())
     ).ThrowAsJavaScriptException();
     return env.Null();
   }
@@ -821,7 +838,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
   if(!SQL_SUCCEEDED(ret = SQLNumParams(stmt.get(), &numParam))) {
     CreateError(
       env,
-      ErrorMessage(_O("SQLNumParams エラー"), ret, SQL_HANDLE_STMT, stmt.get())
+      ErrorMessage(_O("SQLNumParams"), ret, SQL_HANDLE_STMT, stmt.get())
     ).ThrowAsJavaScriptException();
     return env.Null();
   }
@@ -840,7 +857,7 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
         stmt.get(), p + 1, &dataType, &paramSize, &decimalDigits, &nullable))) {
       CreateError(
         env,
-        ErrorMessage(_O("SQLDescribeParam エラー"), ret, SQL_HANDLE_STMT, stmt.get())
+        ErrorMessage(_O("SQLDescribeParam"), ret, SQL_HANDLE_STMT, stmt.get())
       ).ThrowAsJavaScriptException();
       return env.Null();
     }
@@ -870,9 +887,68 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
 
 
 /**
+* ロケール設定
+*
+* @param[in] info Node.jsパラメータ
+* @return Napi::Value カラム情報をJSON形式の文字列で返します
+*/
+
+Napi::Value OmniDb::SetLocale(const Napi::CallbackInfo &info)
+{
+  Napi::Env env = info.Env();
+
+  // setLocale(category, locale)
+  // のパラメータチェック
+  if(info.Length() != 2) {
+    CreateTypeError(
+      env, 
+      OString(_O("setLocale(category, locale) category, localeパラメータは必須です"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  if(!info[0].IsString()) {
+    CreateTypeError(
+      env, 
+      OString(_O("category は文字列のみ指定できます"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  if(!info[1].IsString()) {
+    CreateTypeError(
+      env, 
+      OString(_O("locale は文字列のみ指定できます"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  Napi::String _category = info[0].As<Napi::String>();
+  std::unique_ptr<SQLTCHAR> category(OmniDb::NapiStringToSQLTCHAR(_category));
+
+  Napi::String _locale = info[1].As<Napi::String>();
+  std::unique_ptr<SQLTCHAR> locale(OmniDb::NapiStringToSQLTCHAR(_locale));
+
+
+  // カテゴリ名が一致した場合はロケール設定
+  OString name = _S2O(category.get());
+  int numType = sizeof(LOCALE_NAMES) / sizeof(LOCALE_NAME);
+
+  OString result = _O(""); 
+  for(int i = 0; i < numType; i++) {
+    if(name.compare(_S2O(LOCALE_NAMES[i].name)) == 0) {
+      result = OString(osetlocale(LOCALE_NAMES[i].category, locale.get()));
+      break;
+    }
+  }
+  return Napi::String::New(env, result);
+}
+
+
+/**
 * ODBCエラー文字列取得
 */
-OString OmniDb::ErrorMessage(const OString &msg, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError)
+OString OmniDb::ErrorMessage(const OString &api, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError)
 {
   OString sqlmsg;
 
@@ -897,11 +973,13 @@ OString OmniDb::ErrorMessage(const OString &msg, SQLRETURN retcode, SQLSMALLINT 
       if (sqlmsg.length() > 0) {
         sqlmsg += _O(", ");
       }
-      
-      OString p = _S2O(state);
-      p += _O(":");
-      p += _S2O(odbcmsg);
-      p += _O("(");
+
+      OString p = _S2O(odbcmsg);
+      p += _O("(API:");
+      p += api;
+      p += _O(", STATE:");
+      p += _S2O(state);
+      p += _O(", NATIVE:");
       p += to_ostring(native);
       p += _O(")");
       sqlmsg += p;
@@ -910,9 +988,10 @@ OString OmniDb::ErrorMessage(const OString &msg, SQLRETURN retcode, SQLSMALLINT 
   }
   
   OString res;
-  res += _O("[SQLERR]:") + to_ostring(retcode) + _O(" ") + msg;
   if(sqlmsg.length() > 0) {
-    res += _O("<description> ") + sqlmsg;
+    res += sqlmsg;
+  } else {
+    res += api + _O("エラー (CODE:") + to_ostring(retcode) + _O(")");
   }
   return res;
 }

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <sql.h>
 #include <sqlext.h>
+#include <locale.h>
 
 // Convert a wide Unicode string to an UTF8 string
 
@@ -23,13 +24,17 @@
   typedef std::wstringstream OStringStream;
   // 標準出力
   #define ocout std::wcout
+  // locale設定
+  #define osetlocale(c, l) _wsetlocale((c), (const wchar_t *)l)
   // 文字列コピー
-    #define ostrcpy(s1,s2) wcscpy((wchar_t *)(s1), (const wchar_t *)(s2))
+  #define ostrcpy(s1,s2) wcscpy((wchar_t *)(s1), (const wchar_t *)(s2))
   // 数値文字列変換
   #define to_ostring(s) std::to_wstring((s))
   // 文字列リテラル
   #define _O(s) L##s
   #define _S2O(s) OString((const wchar_t *)(s))
+  // ネイティブ文字列
+  
   // JSON文字列変換(utf-8に変換)
   std::string to_jsonstr(const std::wstring &wstr)
   {
@@ -45,10 +50,12 @@
   // UNIX用(utf-8ベース)
   //
   typedef std::string OString;
-    // OmniDb文字列ストリーム
+  // OmniDb文字列ストリーム
   typedef std::stringstream OStringStream;
   // 標準出力
   #define ocout std::cout
+  // locale設定
+  #define osetlocale(c, l) setlocale((c), (const char *)l)
   // 文字列コピー
   #define ostrcpy(s1,s2) strcpy((char *)(s1), (const char *)(s2))
   // O数値文字列変換
@@ -83,6 +90,9 @@ public:
   Napi::Value Columns(const Napi::CallbackInfo& info);
   // SQL情報取得
   Napi::Value Query(const Napi::CallbackInfo& info);
+
+  // ロケール設定
+  Napi::Value SetLocale(const Napi::CallbackInfo& info);
 private:
   // 接続ハンドル
   SQLHDBC m_hOdbc;
@@ -93,7 +103,7 @@ private:
   void _Disconnect();
 
   // ODBCエラーメッセージ取得
-  OString ErrorMessage(const OString &msg, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError);
+  OString ErrorMessage(const OString &api, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError);
 
   // SQL型名取得
   static OString GetTypeName(SQLSMALLINT type);

@@ -33,6 +33,9 @@ class OmniDb {
       resolve(JSON.parse(this._native.query(queryString, options)));
     });
   }
+  setLocale(category, locale) {
+    return this._native.setLocale(category, locale);
+  }
 }
 
 module.exports = OmniDb;
