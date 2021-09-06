@@ -934,14 +934,13 @@ Napi::Value OmniDb::SetLocale(const Napi::CallbackInfo &info)
   OString name = _S2O(category.get());
   int numType = sizeof(LOCALE_NAMES) / sizeof(LOCALE_NAME);
 
-  OString result = _O(""); 
   for(int i = 0; i < numType; i++) {
     if(name.compare(_S2O(LOCALE_NAMES[i].name)) == 0) {
-      result = OString(osetlocale(LOCALE_NAMES[i].category, locale.get()));
+      osetlocale(LOCALE_NAMES[i].category, locale.get());
       break;
     }
   }
-  return Napi::String::New(env, result);
+  return Napi::Boolean::New(env, true);
 }
 
 
@@ -974,7 +973,8 @@ OString OmniDb::ErrorMessage(const OString &api, SQLRETURN retcode, SQLSMALLINT 
         sqlmsg += _O(", ");
       }
 
-      OString p = _S2O(odbcmsg);
+      OString p = _O("[ODBC-ERROR]");
+      p += _S2O(odbcmsg);
       p += _O("(API:");
       p += api;
       p += _O(", STATE:");
