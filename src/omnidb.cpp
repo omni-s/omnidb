@@ -210,6 +210,7 @@ Napi::Object OmniDb::Init(Napi::Env env, Napi::Object exports)
       InstanceMethod("tables", &OmniDb::Tables),
       InstanceMethod("columns", &OmniDb::Columns),
       InstanceMethod("setLocale", &OmniDb::SetLocale),
+      InstanceMethod("execute", &OmniDb::Execute),
   });
 
   Napi::FunctionReference *constructor = new Napi::FunctionReference();
@@ -883,6 +884,59 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
   result["columns"] = cols;
   result["params"] = params;
   return Napi::String::New(env, result.dump(-1, ' ', true, json::error_handler_t::replace));
+}
+
+
+/**
+* SQLを直接実行します。結果は成否のみ返します
+*
+* @param[in] info Node.jsパラメータ
+* @return Napi::Value SQLの情報をJSON形式の文字列で返します
+*/
+Napi::Value OmniDb::Execute(const Napi::CallbackInfo& info)
+{
+  SQLRETURN ret;
+  Napi::Env env = info.Env();
+
+  //
+  // execute(sql)
+  //
+  // のパラメータチェック
+  //
+  if(info.Length() < 1) {
+    CreateTypeError(
+      env, 
+      OString(_O("execute(sql) sqlパラメータは必須です"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  if(!info[0].IsString()) {
+    CreateTypeError(
+      env, 
+      OString(_O("sql は文字列のみ指定できます"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  //
+  // 指定されたSQLを実行するだけ。例外がでなければ成功
+  //
+  // omnidbのSQL実行はテンポラリテーブルやライブラリリスト等の前準備として必要なもの
+  // を用意するものなので、レコードとかは返却しません。実行するだけです
+  //
+  Napi::String _sql = info[0].As<Napi::String>();
+  std::unique_ptr<SQLTCHAR> sql(OmniDb::NapiStringToSQLTCHAR(_sql));
+
+  std::unique_ptr<SQLHSTMT, StmtAcc> stmt(StmtAcc::alloc(m_hOdbc));
+  if(!SQL_SUCCEEDED(ret = SQLExecDirect(stmt.get(), sql.get(), SQL_NTS))) {
+    CreateError(
+      env,
+      ErrorMessage(_O("SQLExecDirect"), ret, SQL_HANDLE_STMT, stmt.get())
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  return Napi::Boolean::New(env, true);
 }
 
 

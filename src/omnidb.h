@@ -90,6 +90,8 @@ public:
   Napi::Value Columns(const Napi::CallbackInfo& info);
   // SQL情報取得
   Napi::Value Query(const Napi::CallbackInfo& info);
+  // SQL直接実行 ※成否のみ返却
+  Napi::Value Execute(const Napi::CallbackInfo& info);
 
   // ロケール設定
   Napi::Value SetLocale(const Napi::CallbackInfo& info);

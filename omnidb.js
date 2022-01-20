@@ -33,6 +33,11 @@ class OmniDb {
       resolve(JSON.parse(this._native.query(queryString, options)));
     });
   }
+  execute(sql) {
+    return new Promise((resolve) => {
+      resolve(JSON.parse(this._native.execute(sql)));
+    });
+  }
   setLocale(category, locale) {
     return this._native.setLocale(category, locale);
   }
