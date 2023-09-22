@@ -9,7 +9,10 @@ const db = new omnidb();
 
   console.log('// connect');
   console.log(await db.connect('dsn=phpq;uid=qsecofr;pwd=passw0rd;Database=C7054D00;CCSID=1208;EXTCOLINFO=1;'));
-  
+  console.log('// dbms');
+  console.log(await db.dbms())
+  console.log('// schemas');
+  console.log(await db.schemas());
   console.log('// tables');
   console.log(await db.tables({schema: 'DEMQUERY'}));
   console.log('// columns');

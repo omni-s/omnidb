@@ -206,11 +206,13 @@ Napi::Object OmniDb::Init(Napi::Env env, Napi::Object exports)
       InstanceMethod("connect", &OmniDb::Connect),
       InstanceMethod("disconnect", &OmniDb::Disconnect),
       InstanceMethod("drivers", &OmniDb::Drivers),
+      InstanceMethod("dbms", &OmniDb::Dbms),
       InstanceMethod("query", &OmniDb::Query),
+      InstanceMethod("execute", &OmniDb::Execute),
+      InstanceMethod("records", &OmniDb::Records),
       InstanceMethod("tables", &OmniDb::Tables),
       InstanceMethod("columns", &OmniDb::Columns),
       InstanceMethod("setLocale", &OmniDb::SetLocale),
-      InstanceMethod("execute", &OmniDb::Execute),
   });
 
   Napi::FunctionReference *constructor = new Napi::FunctionReference();
@@ -376,6 +378,44 @@ Napi::Value OmniDb::Drivers(const Napi::CallbackInfo &info)
 
 
 /**
+ * 接続しているDBMS名を取得します
+ * 
+ * @param[in] info Node.jsパラメータ
+ * @return Napi::Value 接続しているDBMS名を返します
+ */
+Napi::Value OmniDb::Dbms(const Napi::CallbackInfo &info)
+{
+  SQLRETURN ret;
+  Napi::Env env = info.Env();
+
+  SQLTCHAR driverName[1024];
+  SQLSMALLINT driverNameLength = 0;
+  memset(driverName, 0x00, sizeof(driverName));
+
+  if(m_hOdbc) {
+    // 接続しているDBMS名を取得
+    // https://learn.microsoft.com/ja-jp/sql/odbc/reference/syntax/sqlgetinfo-function?view=sql-server-ver16
+    //
+    // 2023/09/21現在
+    // PostgreSQL=PostgreSQL～
+    // MySQL=MySQL
+    // MariaDB=MariaDB
+    // IBMI=DB2/400～
+    if(!SQL_SUCCEEDED(ret =
+      SQLGetInfo(m_hOdbc, SQL_DBMS_NAME, driverName, sizeof(driverName), &driverNameLength))) {
+      CreateError(
+        env,
+        ErrorMessage(_O("SQLGetInfo"), ret, SQL_HANDLE_DBC, m_hOdbc)
+      ).ThrowAsJavaScriptException();
+      return env.Null();
+    }
+  }
+
+  return Napi::String::New(env, _N(driverName));
+}
+
+
+/**
 * テーブル情報取得
 *
 * @param[in] info Node.jsパラメータ
@@ -414,30 +454,33 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo& info)
     // カタログ（データベース条件）
     if(condition.Has("catalog")) {
       Napi::String _catalog = condition.Get("catalog").ToString();
-      if(!IsBlank(_catalog))
+      if(!IsBlank(_catalog)) {
         catalog.reset(OmniDb::NapiStringToSQLTCHAR(_catalog));
+      }
     }
     // スキーマー
     if(condition.Has("schema")) {
       Napi::String _schema = condition.Get("schema").ToString();
-      if(!IsBlank(_schema))
+      if(!IsBlank(_schema)) {
         schema.reset(OmniDb::NapiStringToSQLTCHAR(_schema));
+      }
     }
     // テーブル
     if(condition.Has("table")) {
       Napi::String _table = condition.Get("table").ToString();
-      if(!IsBlank(_table))
+      if(!IsBlank(_table)) {
         table.reset(OmniDb::NapiStringToSQLTCHAR(_table));
+      }
     }
     // カラム
     if(condition.Has("tableType")) {
       Napi::String _tableType = condition.Get("tableType").ToString();
-      if(!IsBlank(_tableType))
+      if(!IsBlank(_tableType)) {
         tableType.reset(OmniDb::NapiStringToSQLTCHAR(_tableType));
+      }
     }
   }
 
-  
   // テーブル情報取得
   // https://www.ibm.com/docs/ja/i/7.3?topic=functions-sqlcolumns-get-column-information-table
   std::unique_ptr<SQLHSTMT, StmtAcc> stmt(StmtAcc::alloc(m_hOdbc));
@@ -937,6 +980,197 @@ Napi::Value OmniDb::Execute(const Napi::CallbackInfo& info)
   }
 
   return Napi::Boolean::New(env, true);
+}
+
+/**
+* SQLを直接実行し、レコードを返却します。ユーティリティとして使用することを目的とした簡易版です
+*
+* @param[in] info Node.jsパラメータ
+* @return Napi::Value SQLの実行結果をJSONで返します
+*/
+Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
+{
+  SQLRETURN ret;
+  Napi::Env env = info.Env();
+
+  //
+  // records(sql)
+  //
+  // のパラメータチェック
+  //
+  if(info.Length() < 1) {
+    CreateTypeError(
+      env, 
+      OString(_O("records(sql) sqlパラメータは必須です"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  if(!info[0].IsString()) {
+    CreateTypeError(
+      env, 
+      OString(_O("sql は文字列のみ指定できます"))
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+
+  //
+  // SQL実行
+  //
+  Napi::String _sql = info[0].As<Napi::String>();
+  std::unique_ptr<SQLTCHAR> sql(OmniDb::NapiStringToSQLTCHAR(_sql));
+  std::unique_ptr<SQLHSTMT, StmtAcc> stmt(StmtAcc::alloc(m_hOdbc));
+  if(!SQL_SUCCEEDED(ret = SQLExecDirect(stmt.get(), sql.get(), SQL_NTS))) {
+    CreateError(
+      env,
+      ErrorMessage(_O("SQLExecDirect"), ret, SQL_HANDLE_STMT, stmt.get())
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  // 結果セットのカラム数を取得
+  SQLSMALLINT numCols;
+  if(!SQL_SUCCEEDED(ret = SQLNumResultCols(stmt.get(), &numCols))) {
+    CreateError(
+      env,
+      ErrorMessage(_O("SQLNumResultCols"), ret, SQL_HANDLE_STMT, stmt.get())
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  //
+  // カラム情報を設定
+  //
+  json columns = json::array();
+  std::vector<SQLSMALLINT> colTypes;
+  for (SQLSMALLINT col = 1; col <= numCols; col++) {
+    SQLTCHAR colName[255] = { 0 };
+    SQLSMALLINT colType;
+    SQLULEN colLength;
+
+    if(!SQL_SUCCEEDED(ret = SQLDescribeCol(stmt.get(), col, colName, sizeof(colName), NULL, &colType, &colLength, NULL, NULL))) {
+      CreateError(
+        env,
+        ErrorMessage(_O("SQLDescribeCol"), ret, SQL_HANDLE_STMT, stmt.get())
+      ).ThrowAsJavaScriptException();
+      return env.Null();
+    }
+
+    // カラム情報を保存
+    columns.push_back(to_jsonstr(_S2O(colName)));
+    colTypes.push_back(colType);
+  }
+
+  //
+  // レコード取得
+  //
+  json recs = json::array();
+
+  boolean first = true;
+  while (SQLFetch(stmt.get()) == SQL_SUCCESS) {
+    json rec = json::array();
+    for (SQLSMALLINT col = 1; col <= numCols; col++) {
+      // NULL値確認
+      SQLLEN indicator;
+
+      // セットマクロ
+      #define SETDATA(t, buf, size, setv) \
+          if(SQL_SUCCEEDED(ret = SQLGetData(stmt.get(), col, (t), (buf), (size), &indicator))) { \
+            if(indicator == SQL_NULL_DATA) \
+              rec.push_back(nullptr); \
+            else \
+              rec.push_back((setv)); \
+          } \
+
+      ret = SQL_SUCCESS;
+
+      // データ設定 ※サポートしている
+      switch(colTypes[col - 1]) {
+        case SQL_REAL:
+        case SQL_DECIMAL:
+        case SQL_NUMERIC:
+        {
+          SQLCHAR v[256] = { 0 };
+          SETDATA(SQL_C_CHAR, v, sizeof(v), std::string((const char *)v));
+          break;
+        }
+        case SQL_CHAR:
+        case SQL_VARCHAR:
+        case SQL_LONGVARCHAR:
+        {
+          printf("dd\n");
+
+          SQLCHAR v[4096] = { 0 };
+          SETDATA(SQL_C_CHAR, v, sizeof(v), std::string((const char *)v));
+          break;
+        }
+        case SQL_WCHAR:
+        case SQL_WVARCHAR:
+        case SQL_WLONGVARCHAR:
+        {
+          SQLWCHAR v[2048] = { 0 };
+          SETDATA(SQL_C_WCHAR, v, sizeof(v), to_jsonstr(std::wstring((const wchar_t *)v)));
+          break;
+        }
+        case SQL_FLOAT:
+        case SQL_DOUBLE:
+        {
+          SQLDOUBLE v;
+          SETDATA(SQL_C_DOUBLE, &v, sizeof(v), v);
+          break;
+        }
+        case SQL_TINYINT:
+        {
+          printf("gg\n");
+
+          SQLCHAR v;
+          SETDATA(SQL_C_STINYINT, &v, sizeof(v), (SQLSMALLINT)v);
+          break;
+        }
+        case SQL_SMALLINT:
+        {
+          SQLSMALLINT v;
+          SETDATA(SQL_C_SHORT, &v, sizeof(v), v);
+          break;
+        }
+        case SQL_INTEGER:
+        {
+          SQLINTEGER v = 0;
+          SETDATA(SQL_C_SLONG, &v, sizeof(v), v);
+          break;
+        }
+        case SQL_BIGINT:
+        {
+          SQLBIGINT v;
+          // jsonがbitintサポートしていないのでとりあえずキャストで対応
+          SETDATA(SQL_C_SBIGINT, &v, sizeof(v), (SQLINTEGER)v);
+          break;
+        }
+        default: {
+          // とりあえず文字列で返す
+          SQLCHAR v[8192] = { 0 };
+          SETDATA(SQL_C_CHAR, v, sizeof(v), std::string((const char *)v));
+          break;
+        }
+      }
+
+      if(!SQL_SUCCEEDED(ret)) {
+        CreateError(
+          env,
+          ErrorMessage(_O("SQLGetData") , ret, SQL_HANDLE_STMT, stmt.get())
+        ).ThrowAsJavaScriptException();
+        return env.Null();
+      }
+    }
+
+    // レコード追加
+    recs.push_back(rec);
+  }
+
+  json result = json::object();
+  result["columns"] = columns;
+  result["records"] = recs;
+  return Napi::String::New(env, result.dump(-1, ' ', true, json::error_handler_t::replace));
 }
 
 

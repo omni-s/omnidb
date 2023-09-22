@@ -34,6 +34,7 @@
   #define _O(s) L##s
   #define _S2O(s) OString((const wchar_t *)(s))
   // ネイティブ文字列
+  #define _N(s) ((char16_t *)(s))
   
   // JSON文字列変換(utf-8に変換)
   std::string to_jsonstr(const std::wstring &wstr)
@@ -63,6 +64,8 @@
   // 文字列リテラル
   #define _O(s) s
   #define _S2O(s) OString((const char *)(s))
+  // ネイティブ文字列
+  #define _N(s) ((char *)(s))
   // JSON文字列変換(utf-8に変換) ※何もしない
   #define to_jsonstr(s) s
 #endif
@@ -84,6 +87,8 @@ public:
   Napi::Value Disconnect(const Napi::CallbackInfo& info);
   // ドライバ情報取得
   Napi::Value Drivers(const Napi::CallbackInfo& info);
+  // DBMS名取得
+  Napi::Value Dbms(const Napi::CallbackInfo &info);
   // テーブル情報取得
   Napi::Value Tables(const Napi::CallbackInfo& info);
   // カラム情報取得
@@ -92,7 +97,8 @@ public:
   Napi::Value Query(const Napi::CallbackInfo& info);
   // SQL直接実行 ※成否のみ返却
   Napi::Value Execute(const Napi::CallbackInfo& info);
-
+  // レコード取得(SQL実行)
+  Napi::Value Records(const Napi::CallbackInfo& info);
   // ロケール設定
   Napi::Value SetLocale(const Napi::CallbackInfo& info);
 private:
