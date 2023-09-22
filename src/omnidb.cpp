@@ -1066,7 +1066,6 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
   //
   json recs = json::array();
 
-  boolean first = true;
   while (SQLFetch(stmt.get()) == SQL_SUCCESS) {
     json rec = json::array();
     for (SQLSMALLINT col = 1; col <= numCols; col++) {
