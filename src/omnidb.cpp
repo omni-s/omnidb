@@ -1097,8 +1097,6 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
         case SQL_VARCHAR:
         case SQL_LONGVARCHAR:
         {
-          printf("dd\n");
-
           SQLCHAR v[4096] = { 0 };
           SETDATA(SQL_C_CHAR, v, sizeof(v), std::string((const char *)v));
           break;
@@ -1120,8 +1118,6 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
         }
         case SQL_TINYINT:
         {
-          printf("gg\n");
-
           SQLCHAR v;
           SETDATA(SQL_C_STINYINT, &v, sizeof(v), (SQLSMALLINT)v);
           break;
