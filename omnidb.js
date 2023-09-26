@@ -69,6 +69,13 @@ class OmniDb {
       }
     });
   }
+  primaryKeys(condition = {}) {
+    return new Promise((resolve) => {
+      // 主キー情報を取得する
+      const keys = JSON.parse(this._native.primaryKeys(condition));
+      resolve(keys);
+    });
+  }
   query(queryString, options) {
     return new Promise((resolve) => {
       resolve(JSON.parse(this._native.query(queryString, options)));

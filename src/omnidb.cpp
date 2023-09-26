@@ -212,6 +212,7 @@ Napi::Object OmniDb::Init(Napi::Env env, Napi::Object exports)
       InstanceMethod("records", &OmniDb::Records),
       InstanceMethod("tables", &OmniDb::Tables),
       InstanceMethod("columns", &OmniDb::Columns),
+      InstanceMethod("primaryKeys", &OmniDb::PrimaryKeys),
       InstanceMethod("setLocale", &OmniDb::SetLocale),
   });
 
@@ -687,6 +688,123 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   return Napi::String::New(env, cols.dump(-1, ' ', true, json::error_handler_t::replace));
 
 }
+
+
+/**
+* 主キー情報取得
+*
+* @param[in] info Node.jsパラメータ
+* @return Napi::Value カラム情報をJSON形式の文字列で返します
+*/
+Napi::Value OmniDb::PrimaryKeys(const Napi::CallbackInfo &info)
+{
+  SQLRETURN ret;
+  Napi::Env env = info.Env();
+
+  std::unique_ptr<SQLTCHAR> catalog = nullptr;
+  std::unique_ptr<SQLTCHAR> schema = nullptr;
+  std::unique_ptr<SQLTCHAR> table = nullptr;
+
+  //
+  // table(condition)
+  //
+  // のパラメータチェック。conditionは任意
+  //
+  if(info.Length() == 1) {
+    if(!info[0].IsObject()) {
+      CreateTypeError(
+        env,
+        OString(_O("condition はオブジェクトのみ指定できます"))
+      ).ThrowAsJavaScriptException();
+      return env.Null();
+    }
+
+    // 取得条件取得
+    Napi::Object condition = info[0].As<Napi::Object>();
+
+    // カタログ（データベース条件）
+    if(condition.Has("catalog")) {
+      Napi::String _catalog = condition.Get("catalog").ToString();
+      if(!IsBlank(_catalog))
+        catalog.reset(OmniDb::NapiStringToSQLTCHAR(_catalog));
+    }
+    // スキーマー
+    if(condition.Has("schema")) {
+      Napi::String _schema = condition.Get("schema").ToString();
+      if(!IsBlank(_schema))
+        schema.reset(OmniDb::NapiStringToSQLTCHAR(_schema));
+    }
+    // テーブル
+    if(condition.Has("table")) {
+      Napi::String _table = condition.Get("table").ToString();
+      if(!IsBlank(_table))
+        table.reset(OmniDb::NapiStringToSQLTCHAR(_table));
+    }
+  }
+
+  // テーブルの主キー情報取得
+  std::unique_ptr<SQLHSTMT, StmtAcc> stmt(StmtAcc::alloc(m_hOdbc));
+
+  if(!SQL_SUCCEEDED(ret = 
+    SQLPrimaryKeys(
+      stmt.get(),
+      catalog.get(), catalog.get() == nullptr ? 0 : SQL_NTS,
+      schema.get(), schema.get() == nullptr ? 0 : SQL_NTS,
+      table.get(), table.get() == nullptr ? 0 : SQL_NTS))) {
+    CreateError(
+      env,
+      ErrorMessage(_O("SQLPrimaryKeys"), ret, SQL_HANDLE_STMT, stmt.get())
+    ).ThrowAsJavaScriptException();
+    return env.Null();
+  }  
+
+  //
+  // カラム情報を出力
+  //
+  std::unique_ptr<SQLTCHAR> colCatalog(new SQLTCHAR[ODATA_LENGTH]);
+  std::unique_ptr<SQLTCHAR> colSchema(new SQLTCHAR[ODATA_LENGTH]);
+  std::unique_ptr<SQLTCHAR> colTable(new SQLTCHAR[ODATA_LENGTH]);
+  std::unique_ptr<SQLTCHAR> colColumn(new SQLTCHAR[ODATA_LENGTH]);
+  std::unique_ptr<SQLTCHAR> colPrimaryKey(new SQLTCHAR[ODATA_LENGTH]);
+  SQLSMALLINT colKeySEQ;
+  SQLLEN sizCatalog;  
+  SQLLEN sizSchema;  
+  SQLLEN sizTable;  
+  SQLLEN sizColumn;  
+  SQLLEN sizKeySEQ;  
+  SQLLEN sizPrimaryKey;  
+  #ifdef UNICODE
+  SQLSMALLINT ctype = SQL_C_WCHAR;
+  #else
+  SQLSMALLINT ctype = SQL_C_CHAR;
+  #endif
+
+  SQLBindCol(stmt.get(), 1, ctype, colCatalog.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizCatalog);  
+  SQLBindCol(stmt.get(), 2, ctype, colSchema.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizSchema);  
+  SQLBindCol(stmt.get(), 3, ctype, colTable.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizTable);  
+  SQLBindCol(stmt.get(), 4, ctype, colColumn.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizColumn);  
+  SQLBindCol(stmt.get(), 5, SQL_C_SSHORT, &colKeySEQ, 0, &sizKeySEQ);  
+  SQLBindCol(stmt.get(), 6, ctype, colPrimaryKey.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizPrimaryKey);  
+
+  json primaryKeys = json::array();
+  while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
+    json pk = json::object();
+    pk["catalog"] = to_jsonstr(_S2O(colCatalog.get()));
+    pk["schema"] = to_jsonstr(_S2O(colSchema.get()));
+    pk["table"] = to_jsonstr(_S2O(colTable.get()));
+    pk["column"] = to_jsonstr(_S2O(colColumn.get()));
+    pk["seq"] = colKeySEQ;
+    pk["primaryKey"] = to_jsonstr(_S2O(colPrimaryKey.get()));
+    primaryKeys.push_back(pk);
+  }
+
+  //
+  // キー情報をJSON文字列として返却
+  //
+  return Napi::String::New(env, primaryKeys.dump(-1, ' ', true, json::error_handler_t::replace));
+
+}
+
 
 
 /**

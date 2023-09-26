@@ -93,6 +93,8 @@ public:
   Napi::Value Tables(const Napi::CallbackInfo& info);
   // カラム情報取得
   Napi::Value Columns(const Napi::CallbackInfo& info);
+  // 主キー情報取得
+  Napi::Value PrimaryKeys(const Napi::CallbackInfo& info);
   // SQL情報取得
   Napi::Value Query(const Napi::CallbackInfo& info);
   // SQL直接実行 ※成否のみ返却
