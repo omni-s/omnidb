@@ -1,6 +1,19 @@
 const OmniDbNative = require('bindings')('omnidb');
 
-const { isPostgres, setPostgresTables, setPostgresColumns } = require('./postgres.js');
+const {
+  isPostgres,
+  setPostgresTables,
+  setPostgresColumns
+} = require('./postgres.js');
+
+const { 
+  isMySQL,
+  getMySQLSchemas,
+  getMySQLTables,
+  getMySQLColumns,
+  getMySQLPrimaryKeys,
+  getMySQLQuery
+} = require('./mysql.js');
 
 class OmniDb {
   constructor() {
@@ -35,36 +48,49 @@ class OmniDb {
   }
   schemas(condition = {}) {
     return new Promise((resolve) => {
-      // 全て取得するようにする
-      condition.schema = '%';
-      condition.tableType = '%';
-      // テーブル一覧からスキーマのみ抽出する ※重複はカット
-      const schema = JSON.parse(this._native.tables(condition)).map(item => item.schema)
-      resolve([...new Set(schema)]);
+      if(isMySQL(this.dbms())) {
+        // MySQLはスキーマ名がODBCから取得できないためSQLで取得する
+        getMySQLSchemas(this).then((schema) => {
+          resolve(schema);
+        });
+      } else {
+        // 全て取得するようにする
+        condition.schema = '%';
+        condition.tableType = '%';
+        // テーブル一覧からスキーマのみ抽出する ※重複はカット
+        const schema = JSON.parse(this._native.tables(condition)).map(item => item.schema)
+        resolve([...new Set(schema)]);
+      }
     });
   }
   tables(condition) {
     return new Promise((resolve) => {
-      const tables = JSON.parse(this._native.tables(condition));
+      let tables = JSON.parse(this._native.tables(condition));
       if(isPostgres(this.dbms())) {
         // PostgreSQLはテーブル名がODBCから取得できないためSQLで取得する
         setPostgresTables(this, tables).then((t) => {
           resolve(t);
         });
       } else {
+        if(isMySQL(this.dbms())) {
+          tables = getMySQLTables(tables);
+        }
         resolve(tables);
       }
     });
   }
   columns(condition) {
     return new Promise((resolve) => {
-      const columns = JSON.parse(this._native.columns(condition));
+      let columns = JSON.parse(this._native.columns(condition));
       if(isPostgres(this.dbms())) {
         // PostgreSQLはカラムのRemarkがcolumnsからは取得できないので、SQLで取得する
         setPostgresColumns(this, columns).then((c) => {
           resolve(c);
         });
       } else {
+        if(isMySQL(this.dbms())) {
+          columns = getMySQLColumns(columns);
+        }
         resolve(columns);
       }
     });
@@ -72,13 +98,20 @@ class OmniDb {
   primaryKeys(condition = {}) {
     return new Promise((resolve) => {
       // 主キー情報を取得する
-      const keys = JSON.parse(this._native.primaryKeys(condition));
+      let keys = JSON.parse(this._native.primaryKeys(condition));
+      if(isMySQL(this.dbms())) {
+        keys = getMySQLPrimaryKeys(keys);
+      }
       resolve(keys);
     });
   }
   query(queryString, options) {
     return new Promise((resolve) => {
-      resolve(JSON.parse(this._native.query(queryString, options)));
+      let result = JSON.parse(this._native.query(queryString, options));
+      if(isMySQL(this.dbms())) {
+        result = getMySQLQuery(result);
+      }
+      resolve(result);
     });
   }
   execute(sql) {

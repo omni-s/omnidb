@@ -528,12 +528,11 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo& info)
   json tables = json::array();
   while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
     json table = json::object();
-    table["catalog"] = to_jsonstr(_S2O(colCatalog.get()));
-    table["schema"] = to_jsonstr(_S2O(colSchema.get()));
-    table["name"] = to_jsonstr(_S2O(colTable.get()));
-    table["type"] = to_jsonstr(_S2O(colTableType.get()));
-    table["type"] = to_jsonstr(_S2O(colTableType.get()));
-    table["remarks"] = to_jsonstr(trimString(_S2O(colRemarks.get())));
+    table["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : _O("")));
+    table["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : _O("")));
+    table["name"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : _O("")));
+    table["type"] = to_jsonstr(_S2O(sizTableType > 0 ? colTableType.get() : _O("")));
+    table["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : _O(""))));
     tables.push_back(table);
   }
 
@@ -630,11 +629,11 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   std::unique_ptr<SQLTCHAR> colColumn(new SQLTCHAR[ODATA_LENGTH]);
   std::unique_ptr<SQLTCHAR> colRemarks(new SQLTCHAR[OREMARK_LENGTH]);
   std::unique_ptr<SQLTCHAR> colDefault(new SQLTCHAR[ODATA_LENGTH]);
-  SQLINTEGER colSize;
-  SQLSMALLINT colType;
-  SQLSMALLINT colDecimalDigits;
-  SQLSMALLINT colNumPrec; 
-  SQLSMALLINT colNullable;
+  SQLINTEGER colSize = 0;
+  SQLSMALLINT colType = 0;
+  SQLSMALLINT colDecimalDigits = 0;
+  SQLSMALLINT colNumPrec = 0; 
+  SQLSMALLINT colNullable = 0;
   SQLLEN sizCatalog;  
   SQLLEN sizSchema;  
   SQLLEN sizTable;  
@@ -667,19 +666,26 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   json cols = json::array();
   while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
     json col = json::object();
-    col["catalog"] = to_jsonstr(_S2O(colCatalog.get()));
-    col["schema"] = to_jsonstr(_S2O(colSchema.get()));
-    col["table"] = to_jsonstr(_S2O(colTable.get()));
-    col["name"] = to_jsonstr(_S2O(colColumn.get()));
+    col["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : _O("")));
+    col["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : _O("")));
+    col["table"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : _O("")));
+    col["name"] = to_jsonstr(_S2O(sizColumn > 0 ? colColumn.get() : _O("")));
     col["type"] = to_jsonstr(GetTypeName(colType));
     col["typeClass"] = to_jsonstr(GetTypeClassName(colType));
     col["size"] = colSize;
     col["decimalDigits"] = colDecimalDigits;
     col["numPrec"] = colNumPrec;
-    col["remarks"] = to_jsonstr(trimString(_S2O(colRemarks.get())));
-    col["defualt"] = to_jsonstr(_S2O(colDefault.get()));
+    col["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : _O(""))));
+    col["defualt"] = to_jsonstr(_S2O(sizDefault > 0 ? colDefault.get() : _O("")));
     col["nullable"] = (colNullable == SQL_NULLABLE) ? true : false;
     cols.push_back(col);
+
+    // 念のため初期化
+    colType = 0;
+    colSize = 0;
+    colDecimalDigits = 0;
+    colNumPrec = 0;
+    colNullable = 0;
   }
 
   //
@@ -766,7 +772,7 @@ Napi::Value OmniDb::PrimaryKeys(const Napi::CallbackInfo &info)
   std::unique_ptr<SQLTCHAR> colTable(new SQLTCHAR[ODATA_LENGTH]);
   std::unique_ptr<SQLTCHAR> colColumn(new SQLTCHAR[ODATA_LENGTH]);
   std::unique_ptr<SQLTCHAR> colPrimaryKey(new SQLTCHAR[ODATA_LENGTH]);
-  SQLSMALLINT colKeySEQ;
+  SQLSMALLINT colKeySEQ = 0;
   SQLLEN sizCatalog;  
   SQLLEN sizSchema;  
   SQLLEN sizTable;  
@@ -789,13 +795,16 @@ Napi::Value OmniDb::PrimaryKeys(const Napi::CallbackInfo &info)
   json primaryKeys = json::array();
   while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
     json pk = json::object();
-    pk["catalog"] = to_jsonstr(_S2O(colCatalog.get()));
-    pk["schema"] = to_jsonstr(_S2O(colSchema.get()));
-    pk["table"] = to_jsonstr(_S2O(colTable.get()));
-    pk["column"] = to_jsonstr(_S2O(colColumn.get()));
+    pk["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : _O("")));
+    pk["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : _O("")));
+    pk["table"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : _O("")));
+    pk["column"] = to_jsonstr(_S2O(sizColumn > 0 ? colColumn.get() : _O("")));
     pk["seq"] = colKeySEQ;
-    pk["primaryKey"] = to_jsonstr(_S2O(colPrimaryKey.get()));
+    pk["primaryKey"] = to_jsonstr(_S2O(sizPrimaryKey > 0 ? colPrimaryKey.get() : _O("")));
     primaryKeys.push_back(pk);
+
+    // 念のため初期化
+    colKeySEQ = 0;
   }
 
   //
