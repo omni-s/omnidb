@@ -25,13 +25,13 @@
   // 標準出力
   #define ocout std::wcout
   // locale設定
-  #define osetlocale(c, l) _wsetlocale((c), (const wchar_t *)l)
+  #define osetlocale(c, l) _wsetlocale((c), (const wchar_t *)(l))
   // 文字列コピー
   #define ostrcpy(s1,s2) wcscpy((wchar_t *)(s1), (const wchar_t *)(s2))
   // 数値文字列変換
   #define to_ostring(s) std::to_wstring((s))
   // 文字列リテラル
-  #define _O(s) L##s
+  #define _O(s) (L##s)
   #define _S2O(s) OString((const wchar_t *)(s))
   // ネイティブ文字列
   #define _N(s) ((char16_t *)(s))
@@ -56,18 +56,18 @@
   // 標準出力
   #define ocout std::cout
   // locale設定
-  #define osetlocale(c, l) setlocale((c), (const char *)l)
+  #define osetlocale(c, l) setlocale((c), (const char *)(l))
   // 文字列コピー
   #define ostrcpy(s1,s2) strcpy((char *)(s1), (const char *)(s2))
   // O数値文字列変換
   #define to_ostring(s) std::to_string((s))
   // 文字列リテラル
-  #define _O(s) s
+  #define _O(s) (s)
   #define _S2O(s) OString((const char *)(s))
   // ネイティブ文字列
   #define _N(s) ((char *)(s))
   // JSON文字列変換(utf-8に変換) ※何もしない
-  #define to_jsonstr(s) s
+  #define to_jsonstr(s) (s)
 #endif
 
 class OmniDb : public Napi::ObjectWrap<OmniDb> {
