@@ -1,6 +1,10 @@
 const OmniDbNative = require('bindings')('omnidb');
 
 const {
+  isAS400, getAS400Schemas
+} = require('./as400.js');
+
+const {
   isPostgres,
   setPostgresTables,
   setPostgresColumns
@@ -48,7 +52,12 @@ class OmniDb {
   }
   schemas(condition = {}) {
     return new Promise((resolve) => {
-      if(isMySQL(this.dbms())) {
+      if(isAS400(this.dbms())) {
+        // AS400はODBCのSQLTablesではうまく取得できないのでSQLで取得する
+        getAS400Schemas(this).then((schemas) => {
+          resolve(schemas);
+        });
+      } else if(isMySQL(this.dbms())) {
         // MySQLはスキーマ名がODBCから取得できないためSQLで取得する
         getMySQLSchemas(this).then((schemas) => {
           resolve(schemas);

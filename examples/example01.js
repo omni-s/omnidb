@@ -25,6 +25,8 @@ const db = new omnidb();
   } catch(e) {
     console.error(e)
   }
+  console.log('// records');
+  console.log(await db.records('select * from DEMQUERY.DEMSHN'));
 
   // execute check
   console.log('// execute');
