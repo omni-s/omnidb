@@ -12,7 +12,7 @@ exports.isMySQL = isMySQL;
 /**
  * MySQLのスキーマ名を取得する
  * @param {OmniDb} omnidb omnidbのインスタンス
- * @returns {Array<string>} スキーマ名の配列
+ * @returns {Array<object>} スキーマの配列
  */
 const getMySQLSchemas = async (omnidb) => {
   // MySQLはODBCのSQLTablesではうまく取得できないのでSQLで取得する
@@ -31,8 +31,15 @@ const getMySQLSchemas = async (omnidb) => {
   const records = res.records;
   const nameIdx = res.columns.findIndex((column) => column.toLowerCase() === 'schema_name');
 
-  // スキーマ名のみ返す
-  return records.map((rec) => rec[nameIdx]);
+  // スキーマとして返却
+  return records.map((rec) => {
+    return {
+      // MySQLはcatalog、schemaのどちらにもスキーマ名を設定する
+      catalog: rec[nameIdx],
+      name: rec[nameIdx],
+      remarks: ''
+    }
+  });
 }
 exports.getMySQLSchemas = getMySQLSchemas;
 

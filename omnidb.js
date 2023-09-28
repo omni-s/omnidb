@@ -50,16 +50,24 @@ class OmniDb {
     return new Promise((resolve) => {
       if(isMySQL(this.dbms())) {
         // MySQLはスキーマ名がODBCから取得できないためSQLで取得する
-        getMySQLSchemas(this).then((schema) => {
-          resolve(schema);
+        getMySQLSchemas(this).then((schemas) => {
+          resolve(schemas);
         });
       } else {
         // 全て取得するようにする
         condition.schema = '%';
         condition.tableType = '%';
         // テーブル一覧からスキーマのみ抽出する ※重複はカット
-        const schema = JSON.parse(this._native.tables(condition)).map(item => item.schema)
-        resolve([...new Set(schema)]);
+        const _tmp = JSON.parse(this._native.tables(condition)).map(item => `${item.catalog}|${item.schema}`)
+        const schemas = [...new Set(_tmp)].map(t => {
+          const [catalog, schema] = t.split('|');
+          return {
+            catalog: catalog,
+            name: schema,
+            remarks: '',
+          }
+        })
+        resolve(schemas);
       }
     });
   }
