@@ -1173,7 +1173,7 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
   //
   // カラム情報を設定
   //
-  json columns = json::array();
+  json columnIndex = json::object();
   std::vector<SQLSMALLINT> colTypes;
   for (SQLSMALLINT col = 1; col <= numCols; col++) {
     SQLTCHAR colName[255] = { 0 };
@@ -1189,7 +1189,7 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
     }
 
     // カラム情報を保存
-    columns.push_back(to_jsonstr(_S2O(colName)));
+    columnIndex[to_jsonstr(_S2O(colName))] = col - 1;
     colTypes.push_back(colType);
   }
 
@@ -1295,7 +1295,7 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
   }
 
   json result = json::object();
-  result["columns"] = columns;
+  result["columnIndex"] = columnIndex;
   result["records"] = recs;
   return Napi::String::New(env, result.dump(-1, ' ', true, json::error_handler_t::replace));
 }

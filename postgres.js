@@ -59,8 +59,8 @@ const setPostgresTables = async (omnidb, tables) => {
 
   const res = await omnidb.records(sql);
   const records = res.records;
-  const remarkIdx = res.columns.findIndex((column) => column === 'remarks');
-  const nameIdx = res.columns.findIndex((column) => column === 'name');
+  const remarkIdx = res.columnIndex.remarks;
+  const nameIdx = res.columnIndex.name;
   return tables.map((table) => {
     const row = records.findIndex((rec) => rec[nameIdx] === `${table.schema}.${table.name}`);
     if(row >= 0) {
@@ -122,11 +122,11 @@ const setPostgresColumns = async (omnidb, columns) => {
     
   const res = await omnidb.records(sql);
   const records = res.records;
-  const remarkIdx = res.columns.findIndex((column) => column === 'remarks');
-  const nameIdx = res.columns.findIndex((column) => column === 'name');
-  const columnIdx = res.columns.findIndex((column) => column === 'column_name');
+  const remarkIdx = res.columnIndex.remarks;
+  const nameIdx = res.columnIndex.name;
+  const columnIndex = res.columnIndex.column_name;
   return columns.map((column) => {
-    const row = records.findIndex((rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIdx] === column.name);
+    const row = records.findIndex((rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.name);
     if(row >= 0) {
       // カラムコメントを設定
       const remarks = records[row][remarkIdx];

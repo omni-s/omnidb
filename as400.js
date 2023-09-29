@@ -28,8 +28,8 @@ const getAS400Schemas = async (omnidb) => {
       SCHEMA_NAME`;
   const res = await omnidb.records(sql);
   const records = res.records;
-  const nameIdx = res.columns.findIndex((column) => column.toLowerCase() === 'schema_name');
-  const remarksIdx = res.columns.findIndex((column) => column.toLowerCase() === 'schema_text');
+  const nameIdx = res.columnIndex.SCHEMA_NAME;
+  const remarksIdx = res.columnIndex.SCHEMA_TEXT;
 
   // スキーマとして返却
   return records.map((rec) => {

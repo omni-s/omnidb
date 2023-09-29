@@ -29,7 +29,7 @@ const getMySQLSchemas = async (omnidb) => {
       schema_name`;
   const res = await omnidb.records(sql);
   const records = res.records;
-  const nameIdx = res.columns.findIndex((column) => column.toLowerCase() === 'schema_name');
+  const nameIdx = res.columnIndex.SCHEMA_NAME;
 
   // スキーマとして返却
   return records.map((rec) => {
