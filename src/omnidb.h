@@ -31,7 +31,7 @@
   // 数値文字列変換
   #define to_ostring(s) (std::to_wstring((s)))
   // 文字列リテラル
-  #define _O(s) ((const wchar_t *)(L##s))
+  #define _O(s) L##s
   #define _S2O(s) (OString((const wchar_t *)(s)))
   // ネイティブ文字列
   #define _N(s) ((char16_t *)(s))
@@ -62,12 +62,12 @@
   // O数値文字列変換
   #define to_ostring(s) (std::to_string((s)))
   // 文字列リテラル
-  #define _O(s) ((const char *)(s))
+  #define _O(s) s
   #define _S2O(s) OString((const char *)(s))
   // ネイティブ文字列
   #define _N(s) ((char *)(s))
   // JSON文字列変換(utf-8に変換) ※何もしない
-  #define to_jsonstr(s) ((const char *)(s))
+  #define to_jsonstr(s) ((s))
 #endif
 
 class OmniDb : public Napi::ObjectWrap<OmniDb> {

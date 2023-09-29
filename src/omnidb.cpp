@@ -526,13 +526,14 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo& info)
 
   // 全ての列情報を出力
   json tables = json::array();
+  SQLTCHAR *emp = (SQLTCHAR *)_O("");
   while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
     json table = json::object();
-    table["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : _O("")));
-    table["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : _O("")));
-    table["name"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : _O("")));
-    table["type"] = to_jsonstr(_S2O(sizTableType > 0 ? colTableType.get() : _O("")));
-    table["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : _O(""))));
+    table["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : emp));
+    table["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : emp));
+    table["name"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : emp));
+    table["type"] = to_jsonstr(_S2O(sizTableType > 0 ? colTableType.get() : emp));
+    table["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : emp)));
     tables.push_back(table);
   }
 
@@ -664,19 +665,21 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   SQLBindCol(stmt.get(), 13, ctype, colDefault.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizDefault);  
 
   json cols = json::array();
+  SQLTCHAR *emp = (SQLTCHAR *)_O("");
+
   while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
     json col = json::object();
-    col["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : _O("")));
-    col["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : _O("")));
-    col["table"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : _O("")));
-    col["name"] = to_jsonstr(_S2O(sizColumn > 0 ? colColumn.get() : _O("")));
+    col["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : emp));
+    col["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : emp));
+    col["table"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : emp));
+    col["name"] = to_jsonstr(_S2O(sizColumn > 0 ? colColumn.get() : emp));
     col["type"] = to_jsonstr(GetTypeName(colType));
     col["typeClass"] = to_jsonstr(GetTypeClassName(colType));
     col["size"] = colSize;
     col["decimalDigits"] = colDecimalDigits;
     col["numPrec"] = colNumPrec;
-    col["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : _O(""))));
-    col["defualt"] = to_jsonstr(_S2O(sizDefault > 0 ? colDefault.get() : _O("")));
+    col["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : emp)));
+    col["defualt"] = to_jsonstr(_S2O(sizDefault > 0 ? colDefault.get() : emp));
     col["nullable"] = (colNullable == SQL_NULLABLE) ? true : false;
     cols.push_back(col);
 
@@ -793,14 +796,16 @@ Napi::Value OmniDb::PrimaryKeys(const Napi::CallbackInfo &info)
   SQLBindCol(stmt.get(), 6, ctype, colPrimaryKey.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizPrimaryKey);  
 
   json primaryKeys = json::array();
+  SQLTCHAR *emp = (SQLTCHAR *)_O("");
+
   while ((ret = SQLFetch(stmt.get())) == SQL_SUCCESS) {
     json pk = json::object();
-    pk["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : _O("")));
-    pk["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : _O("")));
-    pk["table"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : _O("")));
-    pk["column"] = to_jsonstr(_S2O(sizColumn > 0 ? colColumn.get() : _O("")));
+    pk["catalog"] = to_jsonstr(_S2O(sizCatalog > 0 ? colCatalog.get() : emp));
+    pk["schema"] = to_jsonstr(_S2O(sizSchema > 0 ? colSchema.get() : emp));
+    pk["table"] = to_jsonstr(_S2O(sizTable > 0 ? colTable.get() : emp));
+    pk["column"] = to_jsonstr(_S2O(sizColumn > 0 ? colColumn.get() : emp));
     pk["seq"] = colKeySEQ;
-    pk["primaryKey"] = to_jsonstr(_S2O(sizPrimaryKey > 0 ? colPrimaryKey.get() : _O("")));
+    pk["primaryKey"] = to_jsonstr(_S2O(sizPrimaryKey > 0 ? colPrimaryKey.get() : emp));
     primaryKeys.push_back(pk);
 
     // 念のため初期化
