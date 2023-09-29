@@ -1237,8 +1237,16 @@ Napi::Value OmniDb::Records(const Napi::CallbackInfo& info)
         case SQL_WVARCHAR:
         case SQL_WLONGVARCHAR:
         {
+          #ifdef UNICODE
+          // Wide文字対応ドライバ ※windows
           SQLWCHAR v[2048] = { 0 };
-          SETDATA(SQL_C_WCHAR, v, sizeof(v), to_jsonstr(std::wstring((const wchar_t *)v)));
+          SETDATA(SQL_C_WCHAR, v, sizeof(v), wide_to_single(std::wstring((const wchar_t *)v)));
+          #else
+          // その他ドライバの場合のWCHAR系はCHARとして扱う。そのためWCHARは現在はASCII以外はサポートしていない
+          // ※対応する場合はiconv等で変換する必要がある。現時点ではないのでとりあえずこのまま
+          SQLCHAR v[4096] = { 0 };
+          SETDATA(SQL_C_CHAR, v, sizeof(v), std::string((const char *)v));
+          #endif
           break;
         }
         case SQL_FLOAT:

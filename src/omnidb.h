@@ -12,6 +12,11 @@
 #include <locale.h>
 
 // Convert a wide Unicode string to an UTF8 string
+std::string wstr_to_utf8(const std::wstring &wstr)
+{
+
+}
+
 
 #ifdef UNICODE
   //
@@ -37,7 +42,9 @@
   #define _N(s) ((char16_t *)(s))
   
   // JSON文字列変換(utf-8に変換)
-  std::string to_jsonstr(const std::wstring &wstr)
+  #define to_jsonstr(s) (wide_to_single((s)))
+
+  std::string wide_to_single(const std::wstring &wstr)
   {
     // utf-8専用。windowsだと切り替えないと駄目
     if( wstr.empty() ) return std::string();
