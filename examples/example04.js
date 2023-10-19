@@ -13,6 +13,8 @@ const db = new omnidb();
   console.log(await db.dbms())
   console.log('// schemas');
   console.log(await db.schemas());
+  console.log('// current schema');
+  console.log(await db.currentSchema());
   console.log('// tables');
   console.log(await db.tables({schema: 'test'}));
   console.log('// columns');

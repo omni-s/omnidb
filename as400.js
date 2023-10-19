@@ -43,3 +43,15 @@ const getAS400Schemas = async (omnidb) => {
 }
 exports.getAS400Schemas = getAS400Schemas;
 
+/**
+ * AS400の接続中のカレントスキーマを取得する
+ * @param {OmniDb} omnidb omnidbのインスタンス
+ * @returns {string} カレントスキーマ名
+ */
+const getAS400CurrentSchema = async (omnidb) => {
+  // カレントスキーマを返す
+  const sql = `VALUES CURRENT SCHEMA`;
+  const res = await omnidb.records(sql);
+  return (res?.records?.length > 0) ? res.records[0][0] : '';
+}
+exports.getAS400CurrentSchema = getAS400CurrentSchema;

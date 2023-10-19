@@ -138,3 +138,16 @@ const setPostgresColumns = async (omnidb, columns) => {
   })
 }
 exports.setPostgresColumns = setPostgresColumns;
+
+/**
+ * PostgreSQLのカレントスキーマを取得する
+ * @param {object} omnidb omnidbのインスタンス
+ * @returns {string} カレントスキーマ名
+ */
+const getPostgresCurrentSchema = async (omnidb) => {
+  // カレントスキーマを返す
+  const sql = `SELECT current_schema()`;
+  const res = await omnidb.records(sql);
+  return (res?.records?.length > 0) ? res.records[0][0] : '';
+}
+exports.getPostgresCurrentSchema = getPostgresCurrentSchema;

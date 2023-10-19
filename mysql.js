@@ -123,3 +123,16 @@ const getMySQLQuery = (result) => {
   return res;
 }
 exports.getMySQLQuery = getMySQLQuery;
+
+/**
+ * MySQLの接続中のカレントスキーマを取得する
+ * @param {object} omnidb omnidbのインスタンス
+ * @returns {string} カレントスキーマ名
+ */
+const getMySQLCurrentSchema = async (omnidb) => {
+  // MySQLはスキーマー＝データベースなのでカレントデータベースを返す
+  const sql = `SELECT DATABASE()`;
+  const res = await omnidb.records(sql);
+  return (res?.records?.length > 0) ?res.records[0][0] : '';
+}
+exports.getMySQLCurrentSchema = getMySQLCurrentSchema;

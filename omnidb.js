@@ -1,13 +1,14 @@
 const OmniDbNative = require('bindings')('omnidb');
 
 const {
-  isAS400, getAS400Schemas
+  isAS400, getAS400Schemas, getAS400CurrentSchema
 } = require('./as400.js');
 
 const {
   isPostgres,
   setPostgresTables,
-  setPostgresColumns
+  setPostgresColumns,
+  getPostgresCurrentSchema
 } = require('./postgres.js');
 
 const { 
@@ -16,7 +17,8 @@ const {
   getMySQLTables,
   getMySQLColumns,
   getMySQLPrimaryKeys,
-  getMySQLQuery
+  getMySQLQuery,
+  getMySQLCurrentSchema
 } = require('./mysql.js');
 
 class OmniDb {
@@ -77,6 +79,27 @@ class OmniDb {
           }
         })
         resolve(schemas);
+      }
+    });
+  }
+  currentSchema() {
+    // カレントスキーマの取得はODBC経由では行えないのでSQLで取得する
+    return new Promise((resolve) => {
+      if(isAS400(this.dbms())) {
+        getAS400CurrentSchema(this).then((schema) => {
+          resolve(schema);
+        });
+      } else if(isMySQL(this.dbms())) {
+        getMySQLCurrentSchema(this).then((schema) => {
+          resolve(schema);
+        });
+      } else if(isPostgres(this.dbms())) {
+        getPostgresCurrentSchema(this).then((schema) => {
+          resolve(schema);
+        });
+      } else {
+        // その他の場合はカレントスキーマは空文字を返す
+        resolve('');
       }
     });
   }
