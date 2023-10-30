@@ -96,6 +96,7 @@ const setPostgresColumns = async (omnidb, columns) => {
   }
 
   // PostgreSQLはテーブルコメントがcolumnsからは取得できないので、SQLで取得する
+  // 後、特定のカラムはSQLColumnsで取得値がおかしい場合があるので、SQLで取得する
   const sql = `
     SELECT
       *
@@ -106,6 +107,7 @@ const setPostgresColumns = async (omnidb, columns) => {
           pg_stat_user_tables.schemaname AS schema_name,
           pg_stat_user_tables.relname AS table_name,
           information_schema.columns.column_name AS column_name,
+          information_schema.columns.data_type AS data_type,
           pg_description.description AS remarks
         FROM
           pg_stat_user_tables
@@ -124,6 +126,7 @@ const setPostgresColumns = async (omnidb, columns) => {
   const records = res.records;
   const remarkIdx = res.columnIndex.remarks;
   const nameIdx = res.columnIndex.name;
+  const dataTypeIdx = res.columnIndex.data_type;
   const columnIndex = res.columnIndex.column_name;
   return columns.map((column) => {
     const row = records.findIndex((rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.name);
@@ -132,6 +135,33 @@ const setPostgresColumns = async (omnidb, columns) => {
       const remarks = records[row][remarkIdx];
       if(remarks && !column.remarks) {
         column.remarks = remarks;
+      }
+
+      const dataType = records[row][dataTypeIdx];
+      if (dataType) {
+        // 以下のデータ型はODBCから取得した場合VARCHAR(255)等になってしまうので、適切な型に変更する
+        switch (dataType.toLowerCase()) {
+          case 'array':
+          case 'user-defined':  // enum
+          case 'json':
+          case 'jsonb': {
+            // CLOBに変更する
+            if (column.type === 'SQL_WVARCHAR') {
+              column.type = 'SQL_WLONGVARCHAR'
+              column.size = 8190
+            } else if (column.type === 'SQL_VARCHAR') {
+              column.type = 'SQL_LONGVARCHAR'
+              column.size = 8190
+            }
+            break
+          }
+          case 'xml': {
+            if (column.type === 'SQL_WLONGVARCHAR' || column.type === 'SQL_LONGVARCHAR') {
+              column.size = 8190
+            }
+            break
+          }
+        }
       }
     }
     return column;
