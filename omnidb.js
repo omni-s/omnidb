@@ -13,6 +13,7 @@ const {
   isPostgres,
   setPostgresTables,
   setPostgresColumns,
+  getPostgresQuery,
   getPostgresCurrentSchema
 } = require('./postgres.js');
 
@@ -217,12 +218,20 @@ class OmniDb {
       debugLog('query', '<sql>', getLogMsg(queryString), '<opt>', JSON.stringify(options), '<db>', this.dbms(), '<fid>', lid);
 
       let result = JSON.parse(this._native.query(queryString, options));
-      if(isMySQL(this.dbms())) {
-        result = getMySQLQuery(result);
-      }
+      if(isPostgres(this.dbms())) {
+        // PostgreSQLはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
+        getPostgresQuery(this, result).then((t) => {
+          debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid);
+          resolve(t);
+        });
+      } else {
+        if(isMySQL(this.dbms())) {
+          result = getMySQLQuery(result);
+        }
 
-      debugLog('query', '<res>', JSON.stringify(result), '<fid>', lid);
-      resolve(result);
+        debugLog('query', '<res>', JSON.stringify(result), '<fid>', lid);
+        resolve(result);
+      }
     });
   }
   execute(sql) {

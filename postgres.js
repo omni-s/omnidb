@@ -75,6 +75,45 @@ const setPostgresTables = async (omnidb, tables) => {
 }
 exports.setPostgresTables = setPostgresTables;
 
+
+/**
+ * カラム情報を変換する
+ * @param {string} dataType カラムのデータ・タイプ
+ * @param {object} targetColumn 現在のカラム情報
+ * @returns {object} 変換後のカラム情報
+ */
+const transformColumn = (dataType, targetColumn) => {
+  const column = {
+    ...targetColumn,
+  }
+  // 以下のデータ型はODBCから取得した場合VARCHAR(255)等になってしまうので、適切な型に変更する
+  switch (dataType.toLowerCase()) {
+    case 'array':
+    case 'user-defined':  // enum
+    case 'json':
+    case 'jsonb': {
+      // CLOBに変更する
+      if (column.type === 'SQL_WVARCHAR') {
+        column.type = 'SQL_WLONGVARCHAR'
+        column.size = 8190
+      } else if (column.type === 'SQL_VARCHAR') {
+        column.type = 'SQL_LONGVARCHAR'
+        column.size = 8190
+      }
+      break
+    }
+    case 'xml': {
+      if (column.type === 'SQL_WLONGVARCHAR' || column.type === 'SQL_LONGVARCHAR') {
+        column.size = 8190
+      }
+      break
+    }
+  }
+
+  return column;
+}
+
+
 /**
  * PostgreSQLのカラム情報にカラムコメントを設定します。
  * @param {object} omnidb omnidbのインスタンス
@@ -139,35 +178,74 @@ const setPostgresColumns = async (omnidb, columns) => {
 
       const dataType = records[row][dataTypeIdx];
       if (dataType) {
-        // 以下のデータ型はODBCから取得した場合VARCHAR(255)等になってしまうので、適切な型に変更する
-        switch (dataType.toLowerCase()) {
-          case 'array':
-          case 'user-defined':  // enum
-          case 'json':
-          case 'jsonb': {
-            // CLOBに変更する
-            if (column.type === 'SQL_WVARCHAR') {
-              column.type = 'SQL_WLONGVARCHAR'
-              column.size = 8190
-            } else if (column.type === 'SQL_VARCHAR') {
-              column.type = 'SQL_LONGVARCHAR'
-              column.size = 8190
-            }
-            break
-          }
-          case 'xml': {
-            if (column.type === 'SQL_WLONGVARCHAR' || column.type === 'SQL_LONGVARCHAR') {
-              column.size = 8190
-            }
-            break
-          }
-        }
+        column = transformColumn(dataType, column);
       }
     }
     return column;
   })
 }
 exports.setPostgresColumns = setPostgresColumns;
+
+/**
+ * PostgreSQLのクエリ結果を取得する
+ * @param {Object} result クエリ結果
+ * @returns {Object} PostgreSQLのクエリ結果
+ */
+const getPostgresQuery = async (omnidb, query) => {
+  if(!query?.columns?.length > 0) {
+    // データがなければそのまま
+    return query;
+  }
+
+  // 検索するテーブル一覧を作成 ※重複はカット
+  // ※式でカラムが無いものは含まれない(column.columnが空になる)
+  const search = [...new Set(
+      query.columns
+      .filter((column) => column.schema && column.table && column.column)
+      .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"))];
+  if(search.length == 0) {
+    return query;
+  }
+
+  // 特定のカラムは取得値がおかしい場合があるので、SQLで取得する
+  const sql = `
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          table_schema || '.' || table_name AS name,
+          column_name,
+          data_type
+        FROM
+          information_schema.columns
+      ) T
+    WHERE
+      name IN(${search.join(',')})`;
+
+  const res = await omnidb.records(sql);
+  const records = res.records;
+  const nameIdx = res.columnIndex.name;
+  const dataTypeIdx = res.columnIndex.data_type;
+  const columnIndex = res.columnIndex.column_name;
+
+  return {
+    ...query,
+    columns: query.columns.map((column) => {
+      const row = records.findIndex((rec) => 
+        rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.column);
+      if(row >= 0) {
+        const dataType = records[row][dataTypeIdx];
+        if (dataType) {
+          // 型変換
+          column = transformColumn(dataType, column);
+        }
+      }
+      return column;
+    })
+  }
+}
+exports.getPostgresQuery = getPostgresQuery;
 
 /**
  * PostgreSQLのカレントスキーマを取得する
