@@ -950,6 +950,20 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
   for(int col = 0; col < numCol; col++) {
     json column = json::object();
 
+    SQLTCHAR colName[255] = { 0 };
+    SQLSMALLINT colType;
+    SQLULEN colLength;
+    // カラム情報取得
+    // ※time,timestamp型がSQLColAttributeだと取得できないのでSQLDescribeColを使用
+    if(!SQL_SUCCEEDED(ret =
+      SQLDescribeCol(stmt.get(), col + 1, colName, sizeof(colName), NULL, &colType, &colLength, NULL, NULL))) {
+      CreateError(
+        env,
+        ErrorMessage(_O("SQLDescribeCol"), ret, SQL_HANDLE_STMT, stmt.get())
+      ).ThrowAsJavaScriptException();
+      return env.Null();
+    }
+
     SQLSMALLINT numType = sizeof(QUERY_COLTYPES) / sizeof(QUERY_COLTYPE);
     for(int t = 0; t < numType; t++) {
       if((QUERY_COLTYPES[t].type == SQL_DESC_LABEL) && !supportLabel) {
@@ -963,12 +977,17 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo& info)
       SQLLEN attr = 0;
       memset(data, 0x00, sizeof(data));
 
-      // カラム情報取得
-      if(!SQL_SUCCEEDED(
-        SQLColAttribute(
-          stmt.get(), col + 1, QUERY_COLTYPES[t].type,
-          data, sizeof(data), &dataSize, &attr))) {
-        continue;
+      if(QUERY_COLTYPES[t].type == SQL_DESC_TYPE) {
+        // データ型の場合はSQLDescribeColで取得した値を使用
+        attr = colType;
+      } else {
+        // カラム情報取得
+        if(!SQL_SUCCEEDED(
+          SQLColAttribute(
+            stmt.get(), col + 1, QUERY_COLTYPES[t].type,
+            data, sizeof(data), &dataSize, &attr))) {
+          continue;
+        }
       }
 
       const char *prop = QUERY_COLTYPES[t].name;

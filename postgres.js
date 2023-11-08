@@ -87,7 +87,8 @@ const transformColumn = (dataType, targetColumn) => {
     ...targetColumn,
   }
   // 以下のデータ型はODBCから取得した場合VARCHAR(255)等になってしまうので、適切な型に変更する
-  switch (dataType.toLowerCase()) {
+  const dt = dataType.toLowerCase()
+  switch (dt) {
     case 'array':
     case 'user-defined':  // enum
     case 'json':
