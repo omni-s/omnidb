@@ -4,10 +4,10 @@
  * @returns {boolean} MySQL/MariaDbの場合はtrue
  */
 const isMySQL = (dbms) => {
-  const regex = /^(MySQL|MariaDB)/i;
-  return regex.test(dbms);
+  const regex = /^(MySQL|MariaDB)/i
+  return regex.test(dbms)
 }
-exports.isMySQL = isMySQL;
+exports.isMySQL = isMySQL
 
 /**
  * MySQLのスキーマ名を取得する
@@ -26,10 +26,10 @@ const getMySQLSchemas = async (omnidb) => {
     WHERE
       schema_name NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
     ORDER BY
-      schema_name`;
-  const res = await omnidb.records(sql);
-  const records = res.records;
-  const nameIdx = res.columnIndex.SCHEMA_NAME;
+      schema_name`
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const nameIdx = res.columnIndex.SCHEMA_NAME
 
   // スキーマとして返却
   return records.map((rec) => {
@@ -41,7 +41,7 @@ const getMySQLSchemas = async (omnidb) => {
     }
   });
 }
-exports.getMySQLSchemas = getMySQLSchemas;
+exports.getMySQLSchemas = getMySQLSchemas
 
 /**
  * MySQLのテーブル情報を取得する
@@ -52,7 +52,7 @@ const getMySQLTables = (tables) => {
   // MySQLはDB名とスキーマ名のどちらしか扱えないため、入っている方をコピーする
   // ※APIによっては設定しても無視されことがあるので、両方設定する
   return tables.map((table) => {
-    const name = table.catalog || table.schema;
+    const name = table.catalog || table.schema
     return {
       ...table,
       catalog: name,
@@ -60,7 +60,7 @@ const getMySQLTables = (tables) => {
     }
   })
 }
-exports.getMySQLTables = getMySQLTables;
+exports.getMySQLTables = getMySQLTables
 
 /**
  * MySQLのカラム情報を取得する
@@ -71,7 +71,7 @@ const getMySQLColumns = (columns) => {
   // MySQLはDB名とスキーマ名のどちらしか扱えないため、入っている方をコピーする
   // ※APIによっては設定しても無視されことがあるので、両方設定する
   return columns.map((column) => {
-    const name = column.catalog || column.schema;
+    const name = column.catalog || column.schema
     return {
       ...column,
       catalog: name,
@@ -79,7 +79,7 @@ const getMySQLColumns = (columns) => {
     }
   })
 }
-exports.getMySQLColumns = getMySQLColumns;
+exports.getMySQLColumns = getMySQLColumns
 
 /**
  * MySQLの主キー情報を取得する
@@ -90,7 +90,7 @@ const getMySQLPrimaryKeys = (keys) => {
   // MySQLはDB名とスキーマ名のどちらしか扱えないため、入っている方をコピーする
   // ※APIによっては設定しても無視されことがあるので、両方設定する
   return keys.map((key) => {
-    const name = key.catalog || key.schema;
+    const name = key.catalog || key.schema
     return {
       ...key,
       catalog: name,
@@ -98,7 +98,7 @@ const getMySQLPrimaryKeys = (keys) => {
     }
   })
 }
-exports.getMySQLPrimaryKeys = getMySQLPrimaryKeys;
+exports.getMySQLPrimaryKeys = getMySQLPrimaryKeys
 
 /**
  * MySQLのクエリ結果を取得する
@@ -109,20 +109,30 @@ const getMySQLQuery = (result) => {
   // MySQLはDB名とスキーマ名のどちらしか扱えないため、入っている方をコピーする
   // ※APIによっては設定しても無視されことがあるので、両方設定する
   const columns = result.columns.map((column) => {
-    const name = column.catalog || column.schema;
+    const name = column.catalog || column.schema
     return {
       ...column,
       catalog: name,
       schema: name,
     }
   })
+  const params = result.params.map((param) => {
+    const result = { ...param }
+    if(['SQL_VARCHAR', 'SQL_NVARCHAR'].includes(param.type)) {
+      // MySQLのパラメータは全てVARCHAR(255)になるため、サイズを調整する
+      result.size = Math.max(param.size, 65535)
+    }
+    return result
+  })
+
   const res = {
     ...result,
   }
-  res.columns = columns;
-  return res;
+  res.columns = columns
+  res.params = params
+  return res
 }
-exports.getMySQLQuery = getMySQLQuery;
+exports.getMySQLQuery = getMySQLQuery
 
 /**
  * MySQLの接続中のカレントスキーマを取得する
@@ -131,8 +141,8 @@ exports.getMySQLQuery = getMySQLQuery;
  */
 const getMySQLCurrentSchema = async (omnidb) => {
   // MySQLはスキーマー＝データベースなのでカレントデータベースを返す
-  const sql = `SELECT DATABASE()`;
-  const res = await omnidb.records(sql);
-  return (res?.records?.length > 0) ?res.records[0][0] : '';
+  const sql = `SELECT DATABASE()`
+  const res = await omnidb.records(sql)
+  return (res?.records?.length > 0) ?res.records[0][0] : ''
 }
-exports.getMySQLCurrentSchema = getMySQLCurrentSchema;
+exports.getMySQLCurrentSchema = getMySQLCurrentSchema
