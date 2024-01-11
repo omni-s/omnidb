@@ -5,13 +5,13 @@
  */
 const escapeSqlString = (inputString) => {
   // シングルクォートをエスケープ
-  let escapedString = inputString.replace(/'/g, "''");
-  
-  // 他の特殊文字をエスケープ（必要に応じて他の特殊文字も追加してください）
-  escapedString = escapedString.replace(/\\/g, '\\\\'); // バックスラッシュ
-  escapedString = escapedString.replace(/"/g, '\\"'); // ダブルクォート
+  let escapedString = inputString.replace(/'/g, "''")
 
-  return escapedString;
+  // 他の特殊文字をエスケープ（必要に応じて他の特殊文字も追加してください）
+  escapedString = escapedString.replace(/\\/g, '\\\\') // バックスラッシュ
+  escapedString = escapedString.replace(/"/g, '\\"') // ダブルクォート
+
+  return escapedString
 }
 
-exports.escapeSqlString = escapeSqlString;
+exports.escapeSqlString = escapeSqlString

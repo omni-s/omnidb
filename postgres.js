@@ -1,4 +1,4 @@
-const { escapeSqlString } = require('./sql.js');
+const { escapeSqlString } = require('./sql.js')
 
 /**
  * PostgreSQLかどうかを判定します。
@@ -6,10 +6,52 @@ const { escapeSqlString } = require('./sql.js');
  * @returns {boolean} PostgreSQLの場合はtrue
  */
 const isPostgres = (dbms) => {
-  const regex = /^PostgreSQL/i;
-  return regex.test(dbms);
+  const regex = /^PostgreSQL/i
+  return regex.test(dbms)
 }
-exports.isPostgres = isPostgres;
+exports.isPostgres = isPostgres
+
+/**
+ * PostgreSQLのスキーマ情報にスキーマコメントを設定します。
+ * @param {object} omnidb omnidbのインスタンス
+ * @param {Array} schemas スキーマ情報配列
+ * @returns {Array} スキーマ情報配列
+ */
+const setPostgresSchemas = async (omnidb, schemas) => {
+  if (!schemas || schemas.length == 0) {
+    return schemas
+  }
+  // 検索するスキーマ一覧を作成
+  const search = schemas.filter((schema) => schema.name).map((schema) => "'" + escapeSqlString(`${schema.name}`) + "'")
+  if (search.length == 0) {
+    return schemas
+  }
+
+  // PostgreSQLはスキーマコメントが設定できるので、SQLで取得する
+  const sql = `SELECT
+      nspname AS schema_name, 
+      obj_description(oid, 'pg_namespace') AS schema_comment
+    FROM
+      pg_namespace
+    WHERE
+      nspname IN IN(${search.join(',')})`
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const remarkIdx = res.columnIndex.schema_comment
+  const nameIdx = res.columnIndex.schema_name
+  return schemas.map((schema) => {
+    const row = records.findIndex((rec) => rec[nameIdx] === schema.name)
+    if (row >= 0) {
+      // スキーマコメントを設定
+      const remarks = records[row][remarkIdx]
+      if (remarks && !schema.remarks) {
+        schema.remarks = remarks
+      }
+    }
+    return schema
+  })
+}
+exports.setPostgresSchemas = setPostgresSchemas
 
 /**
  * PostgreSQLのテーブル情報にテーブルコメントを設定します。
@@ -18,22 +60,20 @@ exports.isPostgres = isPostgres;
  * @returns {Array} テーブル情報配列
  */
 const setPostgresTables = async (omnidb, tables) => {
-  if(!tables || tables.length == 0) {
-    return tables;
+  if (!tables || tables.length == 0) {
+    return tables
   }
 
   // 検索するテーブル一覧を作成
-  const search =
-    tables
+  const search = tables
     .filter((table) => table.schema && table.name)
-    .map((table) => "'" + escapeSqlString(`${table.schema}.${table.name}`) + "'");
-  if(search.length == 0) {
-    return tables;
+    .map((table) => "'" + escapeSqlString(`${table.schema}.${table.name}`) + "'")
+  if (search.length == 0) {
+    return tables
   }
 
   // PostgreSQLはテーブルコメントがtablesからは取得できないので、SQLで取得する
-  const sql = 
-    `SELECT
+  const sql = `SELECT
       *
     FROM
       (
@@ -55,26 +95,25 @@ const setPostgresTables = async (omnidb, tables) => {
           pg_namespace.nspname NOT IN('pg_catalog', 'pg_toast', 'information_schema')
       ) T
     WHERE
-      name IN(${search.join(',')})`;
+      name IN(${search.join(',')})`
 
-  const res = await omnidb.records(sql);
-  const records = res.records;
-  const remarkIdx = res.columnIndex.remarks;
-  const nameIdx = res.columnIndex.name;
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const remarkIdx = res.columnIndex.remarks
+  const nameIdx = res.columnIndex.name
   return tables.map((table) => {
-    const row = records.findIndex((rec) => rec[nameIdx] === `${table.schema}.${table.name}`);
-    if(row >= 0) {
+    const row = records.findIndex((rec) => rec[nameIdx] === `${table.schema}.${table.name}`)
+    if (row >= 0) {
       // テーブルコメントを設定
-      const remarks = records[row][remarkIdx];
-      if(remarks && !table.remarks) {
-        table.remarks = remarks;
+      const remarks = records[row][remarkIdx]
+      if (remarks && !table.remarks) {
+        table.remarks = remarks
       }
     }
-    return table;
+    return table
   })
 }
-exports.setPostgresTables = setPostgresTables;
-
+exports.setPostgresTables = setPostgresTables
 
 /**
  * カラム情報を変換する
@@ -90,7 +129,7 @@ const transformColumn = (dataType, targetColumn) => {
   const dt = dataType.toLowerCase()
   switch (dt) {
     case 'array':
-    case 'user-defined':  // enum
+    case 'user-defined': // enum
     case 'json':
     case 'jsonb': {
       // CLOBに変更する
@@ -111,9 +150,8 @@ const transformColumn = (dataType, targetColumn) => {
     }
   }
 
-  return column;
+  return column
 }
-
 
 /**
  * PostgreSQLのカラム情報にカラムコメントを設定します。
@@ -122,17 +160,20 @@ const transformColumn = (dataType, targetColumn) => {
  * @returns {Array} カラム情報配列
  */
 const setPostgresColumns = async (omnidb, columns) => {
-  if(!columns || columns.length == 0) {
-    return columns;
+  if (!columns || columns.length == 0) {
+    return columns
   }
 
   // 検索するテーブル一覧を作成 ※重複はカット
-  const search = [...new Set(
+  const search = [
+    ...new Set(
       columns
-      .filter((column) => column.schema && column.table)
-      .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"))];
-  if(search.length == 0) {
-    return columns;
+        .filter((column) => column.schema && column.table)
+        .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"),
+    ),
+  ]
+  if (search.length == 0) {
+    return columns
   }
 
   // PostgreSQLはテーブルコメントがcolumnsからは取得できないので、SQLで取得する
@@ -160,32 +201,34 @@ const setPostgresColumns = async (omnidb, columns) => {
           AND pg_description.objsubid = information_schema.columns.ordinal_position
       ) T
     WHERE
-      name IN(${search.join(',')})`;
-    
-  const res = await omnidb.records(sql);
-  const records = res.records;
-  const remarkIdx = res.columnIndex.remarks;
-  const nameIdx = res.columnIndex.name;
-  const dataTypeIdx = res.columnIndex.data_type;
-  const columnIndex = res.columnIndex.column_name;
+      name IN(${search.join(',')})`
+
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const remarkIdx = res.columnIndex.remarks
+  const nameIdx = res.columnIndex.name
+  const dataTypeIdx = res.columnIndex.data_type
+  const columnIndex = res.columnIndex.column_name
   return columns.map((column) => {
-    const row = records.findIndex((rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.name);
-    if(row >= 0) {
+    const row = records.findIndex(
+      (rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.name,
+    )
+    if (row >= 0) {
       // カラムコメントを設定
-      const remarks = records[row][remarkIdx];
-      if(remarks && !column.remarks) {
-        column.remarks = remarks;
+      const remarks = records[row][remarkIdx]
+      if (remarks && !column.remarks) {
+        column.remarks = remarks
       }
 
-      const dataType = records[row][dataTypeIdx];
+      const dataType = records[row][dataTypeIdx]
       if (dataType) {
-        column = transformColumn(dataType, column);
+        column = transformColumn(dataType, column)
       }
     }
-    return column;
+    return column
   })
 }
-exports.setPostgresColumns = setPostgresColumns;
+exports.setPostgresColumns = setPostgresColumns
 
 /**
  * PostgreSQLのクエリ結果を取得する
@@ -193,19 +236,22 @@ exports.setPostgresColumns = setPostgresColumns;
  * @returns {Object} PostgreSQLのクエリ結果
  */
 const getPostgresQuery = async (omnidb, query) => {
-  if(!query?.columns?.length > 0) {
+  if (!query?.columns?.length > 0) {
     // データがなければそのまま
-    return query;
+    return query
   }
 
   // 検索するテーブル一覧を作成 ※重複はカット
   // ※式でカラムが無いものは含まれない(column.columnが空になる)
-  const search = [...new Set(
+  const search = [
+    ...new Set(
       query.columns
-      .filter((column) => column.schema && column.table && column.column)
-      .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"))];
-  if(search.length == 0) {
-    return query;
+        .filter((column) => column.schema && column.table && column.column)
+        .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"),
+    ),
+  ]
+  if (search.length == 0) {
+    return query
   }
 
   // 特定のカラムは取得値がおかしい場合があるので、SQLで取得する
@@ -222,31 +268,32 @@ const getPostgresQuery = async (omnidb, query) => {
           information_schema.columns
       ) T
     WHERE
-      name IN(${search.join(',')})`;
+      name IN(${search.join(',')})`
 
-  const res = await omnidb.records(sql);
-  const records = res.records;
-  const nameIdx = res.columnIndex.name;
-  const dataTypeIdx = res.columnIndex.data_type;
-  const columnIndex = res.columnIndex.column_name;
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const nameIdx = res.columnIndex.name
+  const dataTypeIdx = res.columnIndex.data_type
+  const columnIndex = res.columnIndex.column_name
 
   return {
     ...query,
     columns: query.columns.map((column) => {
-      const row = records.findIndex((rec) => 
-        rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.column);
-      if(row >= 0) {
-        const dataType = records[row][dataTypeIdx];
+      const row = records.findIndex(
+        (rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.column,
+      )
+      if (row >= 0) {
+        const dataType = records[row][dataTypeIdx]
         if (dataType) {
           // 型変換
-          column = transformColumn(dataType, column);
+          column = transformColumn(dataType, column)
         }
       }
-      return column;
-    })
+      return column
+    }),
   }
 }
-exports.getPostgresQuery = getPostgresQuery;
+exports.getPostgresQuery = getPostgresQuery
 
 /**
  * PostgreSQLのカレントスキーマを取得する
@@ -255,8 +302,8 @@ exports.getPostgresQuery = getPostgresQuery;
  */
 const getPostgresCurrentSchema = async (omnidb) => {
   // カレントスキーマを返す
-  const sql = `SELECT current_schema()`;
-  const res = await omnidb.records(sql);
-  return (res?.records?.length > 0) ? res.records[0][0] : '';
+  const sql = `SELECT current_schema()`
+  const res = await omnidb.records(sql)
+  return res?.records?.length > 0 ? res.records[0][0] : ''
 }
-exports.getPostgresCurrentSchema = getPostgresCurrentSchema;
+exports.getPostgresCurrentSchema = getPostgresCurrentSchema

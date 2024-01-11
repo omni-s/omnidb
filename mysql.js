@@ -37,9 +37,9 @@ const getMySQLSchemas = async (omnidb) => {
       // MySQLはcatalog、schemaのどちらにもスキーマ名を設定する
       catalog: rec[nameIdx],
       name: rec[nameIdx],
-      remarks: ''
+      remarks: '',
     }
-  });
+  })
 }
 exports.getMySQLSchemas = getMySQLSchemas
 
@@ -118,7 +118,7 @@ const getMySQLQuery = (result) => {
   })
   const params = result.params.map((param) => {
     const result = { ...param }
-    if(['SQL_VARCHAR', 'SQL_NVARCHAR'].includes(param.type)) {
+    if (['SQL_VARCHAR', 'SQL_NVARCHAR'].includes(param.type)) {
       // MySQLのパラメータは全てVARCHAR(255)になるため、サイズを調整する
       result.size = Math.max(param.size, 65535)
     }
@@ -143,6 +143,6 @@ const getMySQLCurrentSchema = async (omnidb) => {
   // MySQLはスキーマー＝データベースなのでカレントデータベースを返す
   const sql = `SELECT DATABASE()`
   const res = await omnidb.records(sql)
-  return (res?.records?.length > 0) ?res.records[0][0] : ''
+  return res?.records?.length > 0 ? res.records[0][0] : ''
 }
 exports.getMySQLCurrentSchema = getMySQLCurrentSchema

@@ -4,10 +4,10 @@
  * @returns {boolean} AS400の場合はtrue
  */
 const isAS400 = (dbms) => {
-  const regex = /^DB2\/400/i;
-  return regex.test(dbms);
+  const regex = /^DB2\/400/i
+  return regex.test(dbms)
 }
-exports.isAS400 = isAS400;
+exports.isAS400 = isAS400
 
 /**
  * AS400のスキーマ名を取得する
@@ -25,11 +25,11 @@ const getAS400Schemas = async (omnidb) => {
     FROM
       QSYS2.SYSSCHEMAS
     ORDER BY
-      SCHEMA_NAME`;
-  const res = await omnidb.records(sql);
-  const records = res.records;
-  const nameIdx = res.columnIndex.SCHEMA_NAME;
-  const remarksIdx = res.columnIndex.SCHEMA_TEXT;
+      SCHEMA_NAME`
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const nameIdx = res.columnIndex.SCHEMA_NAME
+  const remarksIdx = res.columnIndex.SCHEMA_TEXT
 
   // スキーマとして返却
   return records.map((rec) => {
@@ -39,9 +39,9 @@ const getAS400Schemas = async (omnidb) => {
       name: rec[nameIdx],
       remarks: rec[remarksIdx] || '',
     }
-  });
+  })
 }
-exports.getAS400Schemas = getAS400Schemas;
+exports.getAS400Schemas = getAS400Schemas
 
 /**
  * AS400の接続中のカレントスキーマを取得する
@@ -50,8 +50,8 @@ exports.getAS400Schemas = getAS400Schemas;
  */
 const getAS400CurrentSchema = async (omnidb) => {
   // カレントスキーマを返す
-  const sql = `VALUES CURRENT SCHEMA`;
-  const res = await omnidb.records(sql);
-  return (res?.records?.length > 0) ? res.records[0][0] : '';
+  const sql = `VALUES CURRENT SCHEMA`
+  const res = await omnidb.records(sql)
+  return res?.records?.length > 0 ? res.records[0][0] : ''
 }
-exports.getAS400CurrentSchema = getAS400CurrentSchema;
+exports.getAS400CurrentSchema = getAS400CurrentSchema
