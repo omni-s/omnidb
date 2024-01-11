@@ -59,21 +59,21 @@ const setMSSQLTables = async (omnidb, tables) => {
   const sql = `SELECT
       *
     FROM (
-      SELECT 
-        t.name AS TableName,
-        SCHEMA_NAME(t.schema_id) AS SchemaName,
-        CONCAT(t.name, '.', SCHEMA_NAME(t.schema_id)) AS name,
+      SELECT
+        t.name AS table_name,
+        SCHEMA_NAME(t.schema_id) AS schema_name,
+        CONCAT(SCHEMA_NAME(t.schema_id), '.', t.name) AS name,
         ep.value AS remarks
-      FROM 
+      FROM
         sys.tables t
-      LEFT JOIN 
+      LEFT JOIN
         sys.extended_properties ep ON
           t.object_id = ep.major_id
           AND ep.minor_id = 0
           AND ep.name = 'MS_Description'
     ) BASE
     WHERE
-    name IN(${search.join(',')})`
+      name IN(${search.join(',')})`
 
   const res = await omnidb.records(sql)
   const records = res.records
@@ -92,3 +92,75 @@ const setMSSQLTables = async (omnidb, tables) => {
   })
 }
 exports.setMSSQLTables = setMSSQLTables
+
+/**
+ * SQLServerのカラム情報にカラムコメントを設定します。
+ * @param {object} omnidb omnidbのインスタンス
+ * @param {Array} columns カラム情報配列
+ * @returns {Array} カラム情報配列
+ */
+const setMSSQLColumns = async (omnidb, columns) => {
+  if (!columns || columns.length == 0) {
+    return columns
+  }
+
+  // 検索するテーブル一覧を作成 ※重複はカット
+  const search = [
+    ...new Set(
+      columns
+        .filter((column) => column.schema && column.table)
+        .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"),
+    ),
+  ]
+  if (search.length == 0) {
+    return columns
+  }
+
+  // SQLServerはテーブルコメントがcolumnsからは取得できないので、SQLで取得する
+  // 後、特定のカラムはSQLColumnsで取得値がおかしい場合があるので、SQLで取得する
+  const sql = `
+    SELECT
+      *
+    FROM
+      (
+        SELECT 
+            sc.name AS schema_name,
+            tb.name AS table_name,
+            CONCAT(sc.name, '.', tb.name) AS name,
+            col.name AS column_name,
+            ep.value AS remarks
+        FROM 
+            sys.columns col
+        INNER JOIN 
+            sys.tables tb ON col.object_id = tb.object_id
+        INNER JOIN 
+            sys.schemas sc ON tb.schema_id = sc.schema_id
+        LEFT JOIN 
+            sys.extended_properties ep ON
+              col.object_id = ep.major_id 
+              AND col.column_id = ep.minor_id 
+              AND ep.name = 'MS_Description'
+      ) T
+    WHERE
+      name IN(${search.join(',')})`
+
+  const res = await omnidb.records(sql)
+  const records = res.records
+  const remarkIdx = res.columnIndex.remarks
+  const nameIdx = res.columnIndex.name
+  const columnIndex = res.columnIndex.column_name
+  return columns.map((column) => {
+    const row = records.findIndex(
+      (rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.name,
+    )
+    if (row >= 0) {
+      // カラムコメントを設定
+      const remarks = records[row][remarkIdx]
+      if (remarks && !column.remarks) {
+        column.remarks = remarks
+      }
+    }
+    return column
+  })
+}
+exports.setMSSQLColumns = setMSSQLColumns

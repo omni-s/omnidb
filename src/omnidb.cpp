@@ -529,6 +529,11 @@ Napi::Value OmniDb::Tables(const Napi::CallbackInfo &info)
       {
         tableType.reset(OmniDb::NapiStringToSQLTCHAR(_tableType));
       }
+      else
+      {
+        // 空文字列の場合はNULLにする
+        tableType.get()[0] = '\0';
+      }
     }
   }
 
@@ -1120,6 +1125,16 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo &info)
     return env.Null();
   }
 
+  SQLUSMALLINT supported = SQL_TRUE;
+  if (!SQL_SUCCEEDED(ret = SQLGetFunctions(m_hOdbc, SQL_API_SQLDESCRIBEPARAM, &supported)))
+  {
+    CreateError(
+        env,
+        ErrorMessage(_O("SQLGetFunctions"), ret, SQL_HANDLE_DBC, m_hOdbc))
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
   for (int p = 0; p < numParam; p++)
   {
     // パラメータの情報を取得する
@@ -1130,15 +1145,26 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo &info)
     SQLULEN paramSize = 0;
     SQLSMALLINT decimalDigits = 0;
     SQLSMALLINT nullable = 0;
-    if (!SQL_SUCCEEDED(ret =
-                           SQLDescribeParam(
-                               stmt.get(), p + 1, &dataType, &paramSize, &decimalDigits, &nullable)))
+
+    if (supported == SQL_TRUE)
     {
-      CreateError(
-          env,
-          ErrorMessage(_O("SQLDescribeParam"), ret, SQL_HANDLE_STMT, stmt.get()))
-          .ThrowAsJavaScriptException();
-      return env.Null();
+      // SQLDescribeParamがサポートされている場合はSQLDescribeParamで取得
+      if (!SQL_SUCCEEDED(ret =
+                             SQLDescribeParam(
+                                 stmt.get(), p + 1, &dataType, &paramSize, &decimalDigits, &nullable)))
+      {
+        CreateError(
+            env,
+            ErrorMessage(_O("SQLDescribeParam"), ret, SQL_HANDLE_STMT, stmt.get()))
+            .ThrowAsJavaScriptException();
+        return env.Null();
+      }
+    }
+    else
+    {
+      // SQLDescribeParamがサポートされていない場合は強制VARCHAR(8192)とする
+      dataType = SQL_VARCHAR;
+      paramSize = 8192;
     }
 
     // データ型

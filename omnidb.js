@@ -26,18 +26,7 @@ const {
   getMySQLCurrentSchema,
 } = require('./mysql.js')
 
-const {
-  isMSSQL,
-  isFreetds,
-  //getMSSQLSchemas,
-  getMSSQLTables,
-  /*
-  getMSSQLColumns,
-  getMSSQLPrimaryKeys,
-  getMSSQLQuery,
-  */
-  getMSSQLCurrentSchema,
-} = require('./mssql.js')
+const { isMSSQL, isFreetds, setMSSQLTables, setMSSQLColumns, getMSSQLCurrentSchema } = require('./mssql.js')
 
 class OmniDb {
   constructor() {
@@ -118,7 +107,9 @@ class OmniDb {
       } else {
         // 全て取得するようにする
         condition.schema = '%'
-        condition.tableType = '%'
+        // PostgreSQLはテーブルタイプを%にしないと取得できない。他は空文字にする
+        condition.tableType = isPostgres(this.dbms()) ? '%' : ''
+
         // テーブル一覧からスキーマのみ抽出する ※重複はカット
         const _tmp = JSON.parse(this._native.tables(condition)).map((item) => `${item.catalog}|${item.schema}`)
         const schemas = [...new Set(_tmp)].map((t) => {
@@ -129,7 +120,6 @@ class OmniDb {
             remarks: '',
           }
         })
-
         if (isPostgres(this.dbms())) {
           // PostgreSQLはスキーマコメントが設定できるので、SQLで取得する
           setPostgresSchemas(this, schemas).then((s) => {
@@ -195,7 +185,7 @@ class OmniDb {
         })
       } else if (isMSSQL(this.dbms())) {
         // SQL Serverはテーブル名がODBCから取得できないためSQLで取得する
-        getMSSQLTables(this, tables).then((t) => {
+        setMSSQLTables(this, tables).then((t) => {
           debugLog('tables', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
         })
@@ -221,6 +211,12 @@ class OmniDb {
       if (isPostgres(this.dbms())) {
         // PostgreSQLはカラムのRemarkがcolumnsからは取得できないので、SQLで取得する
         setPostgresColumns(this, columns).then((c) => {
+          debugLog('columns', '<res #2>', JSON.stringify(c), '<fid>', lid)
+          resolve(c)
+        })
+      } else if (isMSSQL(this.dbms())) {
+        // SQLServerはカラムのRemarkがcolumnsからは取得できないので、SQLで取得する
+        setMSSQLColumns(this, columns).then((c) => {
           debugLog('columns', '<res #2>', JSON.stringify(c), '<fid>', lid)
           resolve(c)
         })

@@ -19,18 +19,17 @@ const db = new omnidb()
   console.log('// current schema')
   console.log(await db.currentSchema())
   console.log('// tables')
-  console.log(await db.tables({ schema: 'dbo' }))
-  return
-  //console.log(await db.tables({schema: 'test'}));
+  //console.log(await db.tables({ schema: 'dbo' }))
+  console.log(await db.tables({ schema: 'test' }))
   console.log('// columns')
   console.log(await db.columns({ schema: 'test', table: 'test_table_1' }))
   console.log('// columns2')
-  console.log(await db.columns({ schema: 'apibridge', table: 'TestTypes' }))
+  console.log(await db.columns({ table: 'TestTypes' }))
   console.log('// primary keys')
   console.log(await db.primaryKeys({ schema: 'test', table: 'test_table_1' }))
   console.log('// query')
   //console.log(await db.query('select * from \"account\" where id <= ?'));
-  console.log(await db.query('select * from test.`test_table_1` where id <= ?'))
+  console.log(await db.query('select * from [test].[test_table_1] where id <= ?'))
   // console.log('// BAD query');
   // try {
   //   console.log(await db.query("SELECT FOO, BAR FROM QGPL.DEMSHN"));
@@ -38,7 +37,7 @@ const db = new omnidb()
   //   console.error(e)
   // }
   console.log('// records')
-  console.log(await db.records('select * from `account` where id <= 10'))
+  console.log(await db.records('select * from [account] where id <= 10'))
   //console.log(await db.records('select CAST(1.5 AS bigint) AS A, CAST(2.22 AS int) AS B, CAST(3.1 AS smallint) AS C'));
 
   console.log('// disconnect')

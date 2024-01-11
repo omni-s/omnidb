@@ -34,7 +34,8 @@ const setPostgresSchemas = async (omnidb, schemas) => {
     FROM
       pg_namespace
     WHERE
-      nspname IN IN(${search.join(',')})`
+      nspname IN(${search.join(',')})`
+
   const res = await omnidb.records(sql)
   const records = res.records
   const remarkIdx = res.columnIndex.schema_comment

@@ -28,7 +28,7 @@ const db = new omnidb()
   console.log('// primary keys')
   console.log(await db.primaryKeys({ schema: 'test', table: 'test_table_1' }))
   console.log('// query')
-  console.log(await db.query('select * from "account" where id <= ?'))
+  //console.log(await db.query('select * from "account" where id <= ?'))
   console.log(await db.query('select * from test."test_table_1" where id <= ?'))
   console.log(await db.query('select * from public."json_table"'))
   // console.log('// BAD query');
