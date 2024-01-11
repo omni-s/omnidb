@@ -42,7 +42,7 @@ exports.getMSSQLCurrentSchema = getMSSQLCurrentSchema
  * @param {Array} tables テーブル情報配列
  * @returns {Array} テーブル情報配列
  */
-const setMssqlTables = async (omnidb, tables) => {
+const setMSSQLTables = async (omnidb, tables) => {
   if (!tables || tables.length == 0) {
     return tables
   }
@@ -91,4 +91,4 @@ const setMssqlTables = async (omnidb, tables) => {
     return table
   })
 }
-exports.setMssqlTables = setMssqlTables
+exports.setMSSQLTables = setMSSQLTables
