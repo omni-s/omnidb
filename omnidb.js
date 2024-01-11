@@ -28,21 +28,128 @@ const {
 
 const { isMSSQL, isFreetds, setMSSQLTables, setMSSQLColumns, getMSSQLCurrentSchema } = require('./mssql.js')
 
+/**
+ * スキーマ検索条件
+ * @typedef SchemaCondition
+ * @type {Object}
+ * @property {string} [catalog] - データベース名。省略した場合は接続中のデータベースが使用されます。%によるワイルドカード指定が可能です。
+ * @property {string} [schema] - スキーマ名。省略したい場合は全てのスキーマが対象になります。%によるワイルドカード指定が可能です。
+ */
+
+/**
+ * テーブル検索条件
+ * @typedef TableCondition
+ * @type {Object}
+ * @property {string} [catalog] - データベース名。省略した場合は接続中のデータベースが使用されます。%によるワイルドカード指定が可能です。
+ * @property {string} [schema] - スキーマ名。省略したい場合は全てのスキーマが対象になります。%によるワイルドカード指定が可能です。
+ * @property {string} [table] - テーブル名。省略した場合は全てのテーブルが対象になります。%によるワイルドカード指定が可能です。
+ * @property {string} [tableType] - テーブルタイプ。省略した場合はテーブルが対象になります。%によるワイルドカード指定が可能です。
+ */
+
+/**
+ * カラム検索条件
+ * @typedef ColumnCondition
+ * @type {Object}
+ * @property {string} [catalog] - データベース名。省略した場合は接続中のデータベースが使用されます。%によるワイルドカード指定が可能です。
+ * @property {string} [schema] - スキーマ名。省略したい場合は全てのスキーマが対象になります。%によるワイルドカード指定が可能です。
+ * @property {string} [table] - テーブル名。省略した場合は全てのテーブルが対象になります。%によるワイルドカード指定が可能です。
+ * @property {string} [column] - カラム名。省略した場合は全てのカラムが対象になります。%によるワイルドカード指定が可能です。
+ */
+
+/**
+ * 主キー検索条件
+ * @typedef PrimaryKeyCondition
+ * @type {Object}
+ * @property {string} [catalog] - データベース名。省略した場合は接続中のデータベースが使用されます。%によるワイルドカード指定が可能です。
+ * @property {string} [schema] - スキーマ名。省略したい場合は全てのスキーマが対象になります。%によるワイルドカード指定が可能です。
+ * @property {string} [table] - テーブル名。省略した場合は全てのテーブルが対象になります。%によるワイルドカード指定が可能です。
+ */
+
+/**
+ * スキーマ情報
+ * @typedef Schema
+ * @type {Object}
+ * @property {string} catalog - データベース名
+ * @property {string} name - スキーマ名
+ * @property {string} remarks - スキーマコメント
+ */
+
+/**
+ * テーブル情報
+ * @typedef Table
+ * @type {Object}
+ * @property {string} catalog - データベース名
+ * @property {string} schema - スキーマ名
+ * @property {string} name - テーブル名
+ * @property {string} type - テーブルタイプ
+ * @property {string} remarks - テーブルコメント
+ */
+
+/**
+ * カラム情報
+ * @typedef Column
+ * @type {Object}
+ * @property {string} catalog - データベース名
+ * @property {string} schema - スキーマ名
+ * @property {string} table - テーブル名
+ * @property {string} name - カラム名
+ * @property {string} type - カラムの型名
+ * @property {string} typeClass - カラムの型クラス名
+ * @property {number} size - カラムのサイズ
+ * @property {number} decimalDigits - カラムの小数点以下桁数
+ * @property {number} numPrec - カラムの精度
+ * @property {string} remarks - カラムコメント
+ * @property {string} defualt - カラムのデフォルト値
+ * @property {boolean} nullable - カラムがNULL許容かどうか
+ */
+
+/**
+ * 主キー情報
+ * @typedef PrimaryKey
+ * @type {Object}
+ * @property {string} catalog - データベース名
+ * @property {string} schema - スキーマ名
+ * @property {string} table - テーブル名
+ * @property {string} column - カラム名
+ * @property {number} seq - キーのシーケンス番号
+ * @property {string} primaryKey - 主キー名
+ */
+
+/**
+ * OmniDbクラス
+ */
 class OmniDb {
+  /**
+   * コンストラクタ
+   * @constructor
+   */
   constructor() {
     this._native = new OmniDbNative()
     this._dbms = ''
     this._driver = ''
   }
 
+  /**
+   * デバッグモードの設定
+   * @param {boolean} value デバッグモードの設定値
+   */
   static set debug(value) {
     log.isDebug = value
   }
 
+  /**
+   * デバッグモードの取得
+   * @returns {boolean} デバッグモードの設定値
+   */
   static get debug() {
     return log.isDebug
   }
 
+  /**
+   * ODBCドライバ一覧を取得します。
+   * @returns {Array<string>} ODBCドライバ一覧
+   * @async
+   */
   drivers() {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -54,6 +161,14 @@ class OmniDb {
       resolve(JSON.parse(resJson))
     })
   }
+
+  /**
+   * ODBC接続を行います。
+   * @param {string} connectionString 接続文字列
+   * @returns {boolean} 接続に成功した場合はtrue
+   * @throws {Error} 接続に失敗した場合
+   * @async
+   */
   connect(connectionString) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -67,6 +182,13 @@ class OmniDb {
       resolve(result)
     })
   }
+
+  /**
+   * ODBC接続を切断します。
+   * @returns {boolean} 切断に成功した場合はtrue
+   * @throws {Error} 切断に失敗した場合
+   * @async
+   */
   disconnect() {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -80,12 +202,29 @@ class OmniDb {
       resolve(result)
     })
   }
+
+  /**
+   * 接続中のドライバ名を取得します。
+   * @returns {string} ドライバ名
+   */
   driver() {
     return this._driver
   }
+
+  /**
+   * 接続中のDBMS名を取得します。
+   * @returns {string} DBMS名
+   */
   dbms() {
     return this._dbms
   }
+
+  /**
+   * スキーマ一覧を取得します。
+   * @param {SchemaCondition} condition 検索条件
+   * @returns {Array<Schema>} スキーマ情報配列
+   * @async
+   */
   schemas(condition = {}) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -133,6 +272,12 @@ class OmniDb {
       }
     })
   }
+
+  /**
+   * カレントスキーマを取得します。
+   * @returns {string} カレントスキーマ名
+   * @async
+   */
   currentSchema() {
     // カレントスキーマの取得はODBC経由では行えないのでSQLで取得する
     return new Promise((resolve) => {
@@ -167,6 +312,13 @@ class OmniDb {
       }
     })
   }
+
+  /**
+   * テーブル一覧を取得します。
+   * @param {TableCondition} condition 検索条件
+   * @returns {Array<Table>} テーブル情報配列
+   * @async
+   */
   tables(condition) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -198,6 +350,13 @@ class OmniDb {
       }
     })
   }
+
+  /**
+   * カラム一覧を取得します。
+   * @param {Condition} condition 検索条件
+   * @returns {Array<Column>} カラム情報配列
+   * @async
+   */
   columns(condition) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -230,6 +389,13 @@ class OmniDb {
       }
     })
   }
+
+  /**
+   * 主キー一覧を取得します。
+   * @param {PrimaryKeyCondition} condition 検索条件
+   * @returns {Array<PrimaryKey>} 主キー情報配列
+   * @async
+   */
   primaryKeys(condition = {}) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -245,6 +411,14 @@ class OmniDb {
       resolve(keys)
     })
   }
+
+  /**
+   * SQLの情報を返します
+   * @param {string} sql SQL文
+   * @param {object} [options] オプション
+   * @returns {Array} 実行結果
+   * @async
+   */
   query(queryString, options) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -277,6 +451,13 @@ class OmniDb {
       }
     })
   }
+
+  /**
+   * SQLを実行します
+   * @param {string} sql SQL文
+   * @returns {boolean} 実行結果
+   * @async
+   */
   execute(sql) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -289,6 +470,13 @@ class OmniDb {
       resolve(JSON.parse(resJson))
     })
   }
+
+  /**
+   * SQLを実行しレコードを取得します
+   * @param {string} sql SQL文
+   * @returns {Array} 実行結果
+   * @async
+   */
   records(sql) {
     return new Promise((resolve) => {
       const lid = genLogId()
@@ -300,6 +488,13 @@ class OmniDb {
       resolve(JSON.parse(resJson))
     })
   }
+
+  /**
+   * ロケールを設定します。
+   * @param {string} category カテゴリ名
+   * @param {string} locale ロケール名
+   * @returns {boolean} 成功した場合はtrue
+   */
   setLocale(category, locale) {
     return this._native.setLocale(category, locale)
   }
