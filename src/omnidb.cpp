@@ -1162,9 +1162,9 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo &info)
     }
     else
     {
-      // SQLDescribeParamがサポートされていない場合は強制VARCHAR(8192)とする
+      // SQLDescribeParamがサポートされていない場合は強制VARCHAR(8000)とする
       dataType = SQL_VARCHAR;
-      paramSize = 8192;
+      paramSize = 8000;
     }
 
     // データ型
