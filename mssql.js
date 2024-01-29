@@ -164,3 +164,29 @@ const setMSSQLColumns = async (omnidb, columns) => {
   })
 }
 exports.setMSSQLColumns = setMSSQLColumns
+
+/**
+ * SQLServerのクエリ結果を取得する
+ * @param {Object} result クエリ結果
+ * @returns {Object} SQLServerのクエリ結果
+ */
+const getMSSQLQuery = async (result) => {
+  if (!result?.columns?.length > 0) {
+    // データがなければそのまま
+    return result
+  }
+  return {
+    ...result,
+    columns: result.columns.map((column) => {
+      // FreeTDSの場合、varchar(max)、nvarchar(max)、varbinary(max)...
+      // などのmax指定がされているカラムはサイズが0になっている
+      // ただしいサイズはcolumnsのomnidb経由なら取得できるが、queryでは取得できない
+      // ためサイズを最大値(安全を考え-1)にしておく。
+      if (column.size === 0) {
+        column.size = Number.MAX_SAFE_INTEGER - 1
+      }
+      return column
+    }),
+  }
+}
+exports.getMSSQLQuery = getMSSQLQuery

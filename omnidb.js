@@ -26,7 +26,14 @@ const {
   getMySQLCurrentSchema,
 } = require('./mysql.js')
 
-const { isMSSQL, isFreetds, setMSSQLTables, setMSSQLColumns, getMSSQLCurrentSchema } = require('./mssql.js')
+const {
+  isMSSQL,
+  isFreetds,
+  setMSSQLTables,
+  setMSSQLColumns,
+  getMSSQLCurrentSchema,
+  getMSSQLQuery,
+} = require('./mssql.js')
 
 /**
  * スキーマ検索条件
@@ -444,6 +451,8 @@ class OmniDb {
       } else {
         if (isMySQL(this.dbms())) {
           result = getMySQLQuery(result)
+        } else if (isMSSQL(this.dbms())) {
+          result = getMSSQLQuery(result)
         }
 
         debugLog('query', '<res>', JSON.stringify(result), '<fid>', lid)
