@@ -126,29 +126,50 @@ const transformColumn = (dataType, targetColumn) => {
   const column = {
     ...targetColumn,
   }
+
+  // 文字数サイズ
+  const SHORT_CHAR_SIZE = 8192
+  const CHAR_SIZE = 1024 * 1024 * 5
+  // 不定のバイナリ
+  const BIN_SIZE = 1024 * 1024 * 50
+
   // 以下のデータ型はODBCから取得した場合VARCHAR(255)等になってしまうので、適切な型に変更する
   const dt = dataType.toLowerCase()
   switch (dt) {
     case 'array':
     case 'user-defined': // enum
+      // CLOBに変更する
+      if (column.type === 'SQL_WVARCHAR') {
+        column.type = 'SQL_WLONGVARCHAR'
+        column.size = SHORT_CHAR_SIZE
+      } else if (column.type === 'SQL_VARCHAR') {
+        column.type = 'SQL_LONGVARCHAR'
+        column.size = SHORT_CHAR_SIZE
+      }
+      break
     case 'json':
     case 'jsonb': {
       // CLOBに変更する
       if (column.type === 'SQL_WVARCHAR') {
         column.type = 'SQL_WLONGVARCHAR'
-        column.size = 8190
+        column.size = CHAR_SIZE
       } else if (column.type === 'SQL_VARCHAR') {
         column.type = 'SQL_LONGVARCHAR'
-        column.size = 8190
+        column.size = CHAR_SIZE
       }
       break
     }
     case 'xml': {
       if (column.type === 'SQL_WLONGVARCHAR' || column.type === 'SQL_LONGVARCHAR') {
-        column.size = 8190
+        column.size = CHAR_SIZE
       }
       break
     }
+  }
+
+  // サイズが不定のものは-1(文字列不定)、-4(バイナリ不定)になるので仮の値を設定
+  if (column.size < 0) {
+    column.size = column.size === -1 ? CHAR_SIZE : BIN_SIZE
   }
 
   return column
