@@ -190,3 +190,13 @@ const getMSSQLQuery = async (result) => {
   }
 }
 exports.getMSSQLQuery = getMSSQLQuery
+
+/**
+ * システムスキーマを除いた一覧を返却する
+ * @param {array<object>} schemas - スキーマ一覧
+ * @returns {array<object>} システムスキーマを除いたスキーマ一覧
+ */
+const filterMSSQLSchemas = async (schemas) => {
+  return schemas.filter((schema) => schema.name !== 'sys' && schema.name !== 'INFORMATION_SCHEMA')
+}
+exports.filterMSSQLSchemas = filterMSSQLSchemas

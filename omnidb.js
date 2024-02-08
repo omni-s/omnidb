@@ -33,6 +33,7 @@ const {
   setMSSQLColumns,
   getMSSQLCurrentSchema,
   getMSSQLQuery,
+  filterMSSQLSchemas,
 } = require('./mssql.js')
 
 /**
@@ -238,6 +239,8 @@ class OmniDb {
 
       debugLog('schemas', '<cond>', JSON.stringify(condition), '<db>', this.dbms(), '<fid>', lid)
 
+      // 現状conditionは未対応
+
       if (isAS400(this.dbms())) {
         // AS400はODBCのSQLTablesではうまく取得できないのでSQLで取得する
         getAS400Schemas(this).then((schemas) => {
@@ -258,7 +261,7 @@ class OmniDb {
 
         // テーブル一覧からスキーマのみ抽出する ※重複はカット
         const _tmp = JSON.parse(this._native.tables(condition)).map((item) => `${item.catalog}|${item.schema}`)
-        const schemas = [...new Set(_tmp)].map((t) => {
+        let schemas = [...new Set(_tmp)].map((t) => {
           const [catalog, schema] = t.split('|')
           return {
             catalog: catalog,
@@ -273,6 +276,11 @@ class OmniDb {
             resolve(s)
           })
         } else {
+          if (isMSSQL(this.dbms())) {
+            // システムスキーマは除外する
+            schemas = filterMSSQLSchemas(schemas)
+          }
+
           debugLog('schemas', '<res>', JSON.stringify(schemas), '<fid>', lid)
           resolve(schemas)
         }
