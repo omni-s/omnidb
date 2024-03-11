@@ -456,11 +456,15 @@ class OmniDb {
           debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
         })
+      } else if (isMSSQL(this.dbms())) {
+        // SQL ServerはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
+        getMSSQLQuery(this, result, queryString).then((t) => {
+          debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
+          resolve(t)
+        })
       } else {
         if (isMySQL(this.dbms())) {
           result = getMySQLQuery(result)
-        } else if (isMSSQL(this.dbms())) {
-          result = getMSSQLQuery(result)
         }
 
         debugLog('query', '<res>', JSON.stringify(result), '<fid>', lid)

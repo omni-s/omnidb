@@ -1,4 +1,23 @@
 const { escapeSqlString } = require('./sql.js')
+const SqlString = require('tsqlstring')
+const { debugLog } = require('./log.js')
+
+/**
+ * SQL Serverのプレースホルダを変換します
+ * @param {string} sql SQL
+ * @returns {string} 変換されたSQL
+ */
+const convertPlaceHolder = (sql) => {
+  let paramIndex = 1
+  // SQL Serverが直接理解できるプレースホルダに変換する。@から始まる
+  // 例:
+  // SELECT * FROM table WHERE id = ? AND name = ?
+  // ↓
+  // SELECT * FROM table WHERE id = @P1 AND name = @P2
+  return sql.replace(/\?+/g, () => {
+    return `@P${paramIndex++}`
+  })
+}
 
 /**
  * SQL Serverかどうかを判定します。
@@ -167,17 +186,63 @@ exports.setMSSQLColumns = setMSSQLColumns
 
 /**
  * SQLServerのクエリ結果を取得する
+ * @param {Object} omnidb omnidbのインスタンス
  * @param {Object} result クエリ結果
+ * @param {string} sql 実行したSQL
  * @returns {Object} SQLServerのクエリ結果
  */
-const getMSSQLQuery = async (result) => {
+const getMSSQLQuery = async (omnidb, result, sql) => {
   if (!result?.columns?.length > 0) {
     // データがなければそのまま
     return result
   }
+
+  let records = []
+  let nameIdx = 0
+  let sourceDatabaseIdx = 0
+  let sourceSchemaIdx = 0
+  let sourceTableIdx = 0
+  let sourceColumnIdx = 0
+  try {
+    // SQLServer(FreeTDS)の場合、取得元のデータベース、ソース、テーブル、カラムが取得できない
+    // そのため、SQLで取得する
+
+    // プレースホルダをSQLServerのネイティブなプレースホルダに変換
+    const tsql = convertPlaceHolder(sql)
+    // エスケープコードがあるとdm_exec_describe_first_result_setでうまく取得できないのでスペースに置換
+    // また文字列はSQLServerの文字列にエスケープ
+    const _sql = SqlString.escape(tsql.replace(/[\n\r\t]/g, ' '))
+
+    // クエリの結果を取得
+    const query = `SELECT
+      column_ordinal, name, source_database, source_schema, source_table, source_column
+    FROM
+      sys.dm_exec_describe_first_result_set(N${_sql}, null, 1)`
+    const res = await omnidb.records(query)
+    records = res.records
+    nameIdx = res.columnIndex.name
+    sourceDatabaseIdx = res.columnIndex.source_database
+    sourceSchemaIdx = res.columnIndex.source_schema
+    sourceTableIdx = res.columnIndex.source_table
+    sourceColumnIdx = res.columnIndex.source_column
+  } catch (e) {
+    // 補助のためクエリが発生した場合はエラーを無視
+    debugLog('dm_exec_describe_first_result_set', e)
+    records = []
+  }
+
   return {
     ...result,
     columns: result.columns.map((column) => {
+      // 同じ名前の出力カラムがある場合はソース情報を設定
+      const row = records.findIndex((rec) => rec[nameIdx] === column.name)
+      if (row >= 0) {
+        column.catalog = column.catalog || records[row][sourceDatabaseIdx] || ''
+        column.schema = column.schema || records[row][sourceSchemaIdx] || ''
+        column.table = column.table || records[row][sourceTableIdx] || ''
+        column.column = column.column || records[row][sourceColumnIdx] || ''
+      }
+
       // FreeTDSの場合、varchar(max)、nvarchar(max)、varbinary(max)...
       // などのmax指定がされているカラムはサイズが0になっている
       // ただしいサイズはcolumnsのomnidb経由なら取得できるが、queryでは取得できない

@@ -22,6 +22,7 @@
   "homepage": "https://github.com/omni-s/omnidb#readme",
   "dependencies": {
     "bindings": "^1.5.0",
-    "node-addon-api": "^4.0.0"
+    "node-addon-api": "^4.0.0",
+    "tsqlstring": "^1.0.1"
   }
 }

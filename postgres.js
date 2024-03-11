@@ -254,26 +254,27 @@ exports.setPostgresColumns = setPostgresColumns
 
 /**
  * PostgreSQLのクエリ結果を取得する
+ * @param {object} omnidb omnidbのインスタンス
  * @param {Object} result クエリ結果
  * @returns {Object} PostgreSQLのクエリ結果
  */
-const getPostgresQuery = async (omnidb, query) => {
-  if (!query?.columns?.length > 0) {
+const getPostgresQuery = async (omnidb, result) => {
+  if (!result?.columns?.length > 0) {
     // データがなければそのまま
-    return query
+    return result
   }
 
   // 検索するテーブル一覧を作成 ※重複はカット
   // ※式でカラムが無いものは含まれない(column.columnが空になる)
   const search = [
     ...new Set(
-      query.columns
+      result.columns
         .filter((column) => column.schema && column.table && column.column)
         .map((column) => "'" + escapeSqlString(`${column.schema}.${column.table}`) + "'"),
     ),
   ]
   if (search.length == 0) {
-    return query
+    return result
   }
 
   // 特定のカラムは取得値がおかしい場合があるので、SQLで取得する
@@ -299,8 +300,8 @@ const getPostgresQuery = async (omnidb, query) => {
   const columnIndex = res.columnIndex.column_name
 
   return {
-    ...query,
-    columns: query.columns.map((column) => {
+    ...result,
+    columns: result.columns.map((column) => {
       const row = records.findIndex(
         (rec) => rec[nameIdx] === `${column.schema}.${column.table}` && rec[columnIndex] === column.column,
       )
