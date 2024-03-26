@@ -23,6 +23,7 @@
   "dependencies": {
     "bindings": "^1.5.0",
     "node-addon-api": "^4.0.0",
+    "short-uuid": "^4.2.2",
     "tsqlstring": "^1.0.1"
   }
 }

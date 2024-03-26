@@ -36,6 +36,15 @@ const {
   filterMSSQLSchemas,
 } = require('./mssql.js')
 
+const {
+  isOracle,
+  setOracleTables,
+  filterOracleSchemas,
+  getOracleCurrentSchema,
+  setOracleColumns,
+  getOracleQuery
+} = require('./oracle.js')
+
 /**
  * スキーマ検索条件
  * @typedef SchemaCondition
@@ -279,6 +288,9 @@ class OmniDb {
           if (isMSSQL(this.dbms())) {
             // システムスキーマは除外する
             schemas = filterMSSQLSchemas(schemas)
+          } else if (isOracle(this.dbms())) {
+            // システムスキーマは除外する
+            schemas = filterOracleSchemas(schemas)
           }
 
           debugLog('schemas', '<res>', JSON.stringify(schemas), '<fid>', lid)
@@ -320,6 +332,11 @@ class OmniDb {
           debugLog('currentSchema', '<res>', schema, '<fid>', lid)
           resolve(schema)
         })
+      } else if (isOracle(this.dbms())) {
+        getOracleCurrentSchema(this).then((schema) => {
+          debugLog('currentSchema', '<res>', schema, '<fid>', lid)
+          resolve(schema)
+        })
       } else {
         // その他の場合はカレントスキーマは空文字を返す
         debugLog('currentSchema', '<res>', '', '<fid>', lid)
@@ -353,6 +370,12 @@ class OmniDb {
       } else if (isMSSQL(this.dbms())) {
         // SQL Serverはテーブル名がODBCから取得できないためSQLで取得する
         setMSSQLTables(this, tables).then((t) => {
+          debugLog('tables', '<res #2>', JSON.stringify(t), '<fid>', lid)
+          resolve(t)
+        })
+      } else if (isOracle(this.dbms())) {
+        // OracleはコメントがODBCから取得できないためSQLで取得する
+        setOracleTables(this, tables).then((t) => {
           debugLog('tables', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
         })
@@ -391,6 +414,12 @@ class OmniDb {
       } else if (isMSSQL(this.dbms())) {
         // SQLServerはカラムのRemarkがcolumnsからは取得できないので、SQLで取得する
         setMSSQLColumns(this, columns).then((c) => {
+          debugLog('columns', '<res #2>', JSON.stringify(c), '<fid>', lid)
+          resolve(c)
+        })
+      } else if (isOracle(this.dbms())) {
+        // OracleはカラムのRemarkがcolumnsからは取得できないので、SQLで取得する
+        setOracleColumns(this, columns).then((c) => {
           debugLog('columns', '<res #2>', JSON.stringify(c), '<fid>', lid)
           resolve(c)
         })
@@ -459,6 +488,12 @@ class OmniDb {
       } else if (isMSSQL(this.dbms())) {
         // SQL ServerはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
         getMSSQLQuery(this, result, queryString).then((t) => {
+          debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
+          resolve(t)
+        })
+      } else if (isOracle(this.dbms())) {
+        // OracleはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
+        getOracleQuery(this, result, queryString).then((t) => {
           debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
         })
