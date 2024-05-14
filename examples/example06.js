@@ -29,7 +29,7 @@ const db = new omnidb()
   console.log('// columns2')
   console.log(await db.columns({ table: 'TestTypes' }))
   console.log('// columns3')
-  console.log(await db.columns({ table: '日本語テーブル' }))
+  console.log(await db.columns({ table: '譌･譛ｬ隱槭ユ繝ｼ繝悶Ν' }))
   console.log('// primary keys')
   console.log(await db.primaryKeys({ schema: 'TEST', table: 'TEST_TABLE_1' }))
   console.log('// query')
@@ -37,7 +37,7 @@ const db = new omnidb()
   console.log('// query2')
   console.log(await db.query('SELECT A.*, B.* FROM TEST.TEST_TABLE_1 A, TEST.TEST_TABLE_2 B WHERE A.id >= ?'))
   console.log('// query3')
-  console.log(await db.query('SELECT * FROM "日本語テーブル"'))
+  console.log(await db.query('SELECT * FROM "譌･譛ｬ隱槭ユ繝ｼ繝悶Ν"'))
   // console.log('// BAD query');
   // try {
   //   console.log(await db.query("SELECT FOO, BAR FROM QGPL.DEMSHN"));

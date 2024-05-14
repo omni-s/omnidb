@@ -80,6 +80,9 @@ const setGuessedColumn = async (db, st, queryInfo) => {
       OBJECT_INSTANCE`)
 
   res.records.forEach((row) => {
+    if (!row[0] || !row[1] || !row[2]) {
+      return
+    }
     const schema = row[0]
     const table = row[1]
     // projectionをカラム一覧を取得
@@ -91,7 +94,7 @@ const setGuessedColumn = async (db, st, queryInfo) => {
         // スキーマ、テーブル、推測値がどれも設定されていない場合だけ設定
         return
       }
-  
+
       const idx = columns.findIndex((item) => item === column.column)
       if (idx >= 0) {
         // カラム名が同じ場合は推測値のスキーマ、テーブル名として設定
@@ -128,14 +131,17 @@ const clearPlanInfo = async (db, st) => {
  */
 const getPlanColumns = (projection) => {
   // ()や[]で囲まれた文字列を削除
- const items = projection.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').split(',').map(i => i.trim())
- return items.map(item => {
-   // "A"."B"、A.B、"B"、Bの形式からBを抽出
-   const res = item.split('.').map(i => i.replace(/^"|"$/g, ''))
-   return res.length > 1 ? res[1] : res[0]
- })
+  const items = projection
+    .replace(/\(.*?\)/g, '')
+    .replace(/\[.*?\]/g, '')
+    .split(',')
+    .map((i) => i.trim())
+  return items.map((item) => {
+    // "A"."B"、A.B、"B"、Bの形式からBを抽出
+    const res = item.split('.').map((i) => i.replace(/^"|"$/g, ''))
+    return res.length > 1 ? res[1] : res[0]
+  })
 }
-
 
 /**
  * MySQL/MariaDBかどうかを判定します。
@@ -161,22 +167,22 @@ const setOracleTables = async (omnidb, tables) => {
 
   // 検索するテーブル一覧を作成
   const search = tables
-      .filter((table) => table.schema && table.name)
-      .map((table) => "'" + escapeSqlString(`${table.schema}.${table.name}`) + "'")
+    .filter((table) => table.schema && table.name)
+    .map((table) => "'" + escapeSqlString(`${table.schema}.${table.name}`) + "'")
   if (search.length == 0) {
-      return tables
+    return tables
   }
 
   // 検索対象のスキーマ一覧を作成
-  const schemas = [ ...new Set(tables.map((table) => "'" + escapeSqlString(table.schema) + "'")) ]
+  const schemas = [...new Set(tables.map((table) => "'" + escapeSqlString(table.schema) + "'"))]
   if (schemas.length == 0) {
-      return tables
+    return tables
   }
 
   // 検索対象のテーブル一覧を作成
-  const tableNames = [ ...new Set(tables.map((table) => "'" + escapeSqlString(table.name) + "'")) ]
+  const tableNames = [...new Set(tables.map((table) => "'" + escapeSqlString(table.name) + "'"))]
   if (tableNames.length == 0) {
-      return tables
+    return tables
   }
 
   // Oracleはテーブルコメントがtablesからは取得できないので、SQLで取得する
@@ -205,15 +211,15 @@ const setOracleTables = async (omnidb, tables) => {
   const remarkIdx = res.columnIndex.REMARKS
   const nameIdx = res.columnIndex.NAME
   return tables.map((table) => {
-      const row = records.findIndex((rec) => rec[nameIdx] === `${table.schema}.${table.name}`)
-      if (row >= 0) {
+    const row = records.findIndex((rec) => rec[nameIdx] === `${table.schema}.${table.name}`)
+    if (row >= 0) {
       // テーブルコメントを設定
       const remarks = records[row][remarkIdx]
       if (remarks && !table.remarks) {
-          table.remarks = remarks
+        table.remarks = remarks
       }
-      }
-      return table
+    }
+    return table
   })
 }
 exports.setOracleTables = setOracleTables
@@ -242,15 +248,15 @@ const setOracleColumns = async (omnidb, columns) => {
   }
 
   // 検索対象のスキーマ一覧を作成
-  const schemas = [ ...new Set(columns.map((column) => "'" + escapeSqlString(column.schema) + "'")) ]
+  const schemas = [...new Set(columns.map((column) => "'" + escapeSqlString(column.schema) + "'"))]
   if (schemas.length == 0) {
-      return columns
+    return columns
   }
 
   // 検索対象のテーブル一覧を作成
-  const tableNames = [ ...new Set(columns.map((column) => "'" + escapeSqlString(column.table) + "'")) ]
+  const tableNames = [...new Set(columns.map((column) => "'" + escapeSqlString(column.table) + "'"))]
   if (tableNames.length == 0) {
-      return columns
+    return columns
   }
 
   // Oracleはテーブルコメントがcolumnsからは取得できないので、SQLで取得する
@@ -294,7 +300,6 @@ const setOracleColumns = async (omnidb, columns) => {
 }
 exports.setOracleColumns = setOracleColumns
 
-
 /**
  * Oracleのクエリ結果を取得する
  * @param {OmniDb} omnidb omnidbのインスタンス
@@ -309,7 +314,7 @@ const getOracleQuery = async (omnidb, result, sql) => {
   }
 
   const queryInfo = {
-    ...result
+    ...result,
   }
 
   let st = ''
@@ -342,20 +347,18 @@ const getOracleQuery = async (omnidb, result, sql) => {
 }
 exports.getOracleQuery = getOracleQuery
 
-
 /**
  * Oracleのカレントスキーマを取得する
  * @param {object} omnidb omnidbのインスタンス
  * @returns {string} カレントスキーマ名
  */
 const getOracleCurrentSchema = async (omnidb) => {
-    // カレントスキーマを返す
-    const sql = `SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM DUAL`
-    const res = await omnidb.records(sql)
-    return res?.records?.length > 0 ? res.records[0][0] : ''
+  // カレントスキーマを返す
+  const sql = `SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') FROM DUAL`
+  const res = await omnidb.records(sql)
+  return res?.records?.length > 0 ? res.records[0][0] : ''
 }
 exports.getOracleCurrentSchema = getOracleCurrentSchema
-
 
 /**
  * システムスキーマを除いた一覧を返却する
@@ -409,9 +412,9 @@ const filterOracleSchemas = async (schemas) => {
     'MDDATA',
     // Oracle Spatial and GraphおよびOracle Multimedia Locatorの管理者アカウント。
     'MDSYS',
-    // 
+    //
     'OJVMSYS',
-    // 
+    //
     'OLAPSYS',
     // このアカウントには、Oracle Configuration Managerで使用される構成収集向けのインスツルメンテーションが含まれます。
     'ORACLE_OCM',
@@ -450,7 +453,7 @@ const filterOracleSchemas = async (schemas) => {
     // Oracle XML DBのデータおよびメタデータの格納に使用されるアカウント。
     'XDB',
     // セッション内にユーザーが存在しないことを表す内部アカウント。XS$NULLは、ユーザーではないため、Oracle Databaseインスタンスによってのみアクセスできます。XS$NULLには権限がなく、XS$NULLとして認証したり、XS$NULLに認証資格証明を割り当てることはできません。
-    'XS$NULL'
+    'XS$NULL',
   ]
 
   return schemas.filter((schema) => !systemAccounts.includes(schema.name))

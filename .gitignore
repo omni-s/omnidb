@@ -139,7 +139,6 @@ dist
 
 # build
 build
-.vscode
 
 # debug
 .devcontainer

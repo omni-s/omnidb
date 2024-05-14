@@ -42,7 +42,7 @@ const {
   filterOracleSchemas,
   getOracleCurrentSchema,
   setOracleColumns,
-  getOracleQuery
+  getOracleQuery,
 } = require('./oracle.js')
 
 /**
