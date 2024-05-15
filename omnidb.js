@@ -43,6 +43,7 @@ const {
   getOracleCurrentSchema,
   setOracleColumns,
   getOracleQuery,
+  cnvOraclePrimaryKeyCond,
 } = require('./oracle.js')
 
 /**
@@ -445,8 +446,13 @@ class OmniDb {
       const lid = genLogId()
       debugLog('primaryKeys', '<cond>', JSON.stringify(condition), '<db>', this.dbms(), '<fid>', lid)
 
+      let _condition = condition
+      if (isOracle(this.dbms())) {
+        _condition = cnvOraclePrimaryKeyCond(_condition)
+      }
+      
       // 主キー情報を取得する
-      let keys = JSON.parse(this._native.primaryKeys(condition))
+      let keys = JSON.parse(this._native.primaryKeys(_condition))
       if (isMySQL(this.dbms())) {
         keys = getMySQLPrimaryKeys(keys)
       }

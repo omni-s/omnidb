@@ -7,6 +7,25 @@ const short = require('short-uuid')
 const translator = short()
 
 /**
+ * ダブルクオーテーションで括る
+ * @param {string} str 対象文字
+ * @returns {string} ダブルクオーテーションで括られた文字列
+ */
+const ensureDoubleQuoted = (str) => {
+  if (!str) {
+    return str
+  }
+
+  // ダブルクオーテーションで括られているか？
+  if (/^".*"$/.test(str)) {
+      return str
+  }
+
+  // ダブルクオーテーション内のダブルクオーテーションをエスケープしながらくくる
+  return `"${str.replace(/"/g, '\\"')}"`
+}
+
+/**
  * SQL文字列のエスケープ
  * @param {string} s SQL文字列
  * @returns {string} エスケープしたSQL文字列
@@ -484,3 +503,19 @@ const filterOracleSchemas = async (schemas) => {
   return schemas.filter((schema) => !systemAccounts.includes(schema.name))
 }
 exports.filterOracleSchemas = filterOracleSchemas
+
+/**
+ * Primary Key取得条件の変換
+ * @param {object} cond primarykeyを取得する条件
+ * @returns {object} 変換された条件
+ */
+const cnvOraclePrimaryKeyCond = (cond) => {
+  // OracleのPrimary Keyの条件は二重引用符で括らないと大文字扱いになるため必ず二重引用符で括る
+  const schema = ensureDoubleQuoted(cond?.schema)
+  const table = ensureDoubleQuoted(cond?.table)
+  return {
+    schema,
+    table
+  }
+}
+exports.cnvOraclePrimaryKeyCond = cnvOraclePrimaryKeyCond
