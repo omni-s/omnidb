@@ -144,6 +144,27 @@ const getPlanColumns = (projection) => {
 }
 
 /**
+ * カラム情報を変換する
+ * @param {object} targetColumn 現在のカラム情報
+ * @returns {object} 変換後のカラム情報
+ */
+const transformColumn = (targetColumn) => {
+  const column = {
+    ...targetColumn,
+  }
+
+  if (column.type === 'SQL_DECIMAL') {
+    // query結果のサイズはSQL_DECIMALのsizeが入ってこない
+    if (column.size === 0) {
+      // カラムサイズが無い場合は最大桁数(38)を設定
+      column.size = 38
+    }
+  }
+
+  return column
+}
+
+/**
  * MySQL/MariaDBかどうかを判定します。
  * @param {string} dbms DBMS名
  * @returns {boolean} MySQL/MariaDbの場合はtrue
@@ -313,8 +334,12 @@ const getOracleQuery = async (omnidb, result, sql) => {
     return result
   }
 
+  // カラム情報を変換(queryの場合はサイズが取得できない場合があるので変換)
+  const columns = result.columns.map(transformColumn)
   const queryInfo = {
     ...result,
+    // カラムを上書き
+    columns,
   }
 
   let st = ''
