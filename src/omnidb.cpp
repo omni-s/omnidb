@@ -1564,7 +1564,7 @@ OString OmniDb::ErrorMessage(const OString &api, SQLRETURN retcode, SQLSMALLINT 
   }
   else
   {
-    res += api + _O("エラー (CODE:") + to_ostring(retcode) + _O(")");
+    res += api + _O(" ERROR (CODE:") + to_ostring(retcode) + _O(")");
   }
   return res;
 }
