@@ -694,6 +694,7 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   std::unique_ptr<SQLTCHAR> colRemarks(new SQLTCHAR[OREMARK_LENGTH]);
   std::unique_ptr<SQLTCHAR> colDefault(new SQLTCHAR[ODATA_LENGTH]);
   SQLINTEGER colSize = 0;
+  SQLINTEGER colOctetLength = 0;
   SQLSMALLINT colType = 0;
   SQLSMALLINT colDecimalDigits = 0;
   SQLSMALLINT colNumPrec = 0;
@@ -709,6 +710,7 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   SQLLEN sizNullable;
   SQLLEN sizRemarks;
   SQLLEN sizDefault;
+  SQLLEN sizOctetLength;
 #ifdef UNICODE
   SQLSMALLINT ctype = SQL_C_WCHAR;
 #else
@@ -726,6 +728,7 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
   SQLBindCol(stmt.get(), 11, SQL_C_SSHORT, &colNullable, 0, &sizNullable);
   SQLBindCol(stmt.get(), 12, ctype, colRemarks.get(), OREMARK_LENGTH * sizeof(SQLTCHAR), &sizRemarks);
   SQLBindCol(stmt.get(), 13, ctype, colDefault.get(), ODATA_LENGTH * sizeof(SQLTCHAR), &sizDefault);
+  SQLBindCol(stmt.get(), 16, SQL_C_SLONG, &colOctetLength, 0, &sizOctetLength);
 
   json cols = json::array();
   SQLTCHAR *emp = (SQLTCHAR *)_O("");
@@ -740,6 +743,7 @@ Napi::Value OmniDb::Columns(const Napi::CallbackInfo &info)
     col["type"] = to_jsonstr(GetTypeName(colType));
     col["typeClass"] = to_jsonstr(GetTypeClassName(colType));
     col["size"] = colSize;
+    col["octetLength"] = colOctetLength;
     col["decimalDigits"] = colDecimalDigits;
     col["numPrec"] = colNumPrec;
     col["remarks"] = to_jsonstr(trimString(_S2O(sizRemarks > 0 ? colRemarks.get() : emp)));
@@ -920,6 +924,8 @@ Napi::Value OmniDb::Query(const Napi::CallbackInfo &info)
       {SQL_DESC_AUTO_UNIQUE_VALUE, "autoIncliment", NUM_ATTR},
       // サイズ
       {SQL_DESC_LENGTH, "size", NUM_ATTR},
+      // 文字列 or バイナリのバイト数
+      {SQL_DESC_OCTET_LENGTH, "octetLength", NUM_ATTR},
       // 10進数精度
       {SQL_DESC_SCALE, "decimalDigits", NUM_ATTR},
       // カタログ名（物理的な割当がある場合）
