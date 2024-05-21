@@ -43,6 +43,7 @@ const {
   getOracleCurrentSchema,
   setOracleColumns,
   getOracleQuery,
+  createOracleQueryError,
   cnvOraclePrimaryKeyCond,
 } = require('./oracle.js')
 
@@ -470,7 +471,7 @@ class OmniDb {
    * @async
    */
   query(queryString, options) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const lid = genLogId()
       debugLog(
         'query',
@@ -484,24 +485,40 @@ class OmniDb {
         lid,
       )
 
-      let result = JSON.parse(this._native.query(queryString, options))
+      let result
+      try {
+        result = JSON.parse(this._native.query(queryString, options))
+      } catch (e) {
+        let _e = e
+        if (isOracle(this.dbms())) {
+          // Oracleの場合はエラー情報を変換する
+          _e = createOracleQueryError(e)
+        }
+        throw _e
+      }
       if (isPostgres(this.dbms())) {
         // PostgreSQLはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
         getPostgresQuery(this, result).then((t) => {
           debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
+        }).catch((e) => {
+          reject(e)
         })
       } else if (isMSSQL(this.dbms())) {
         // SQL ServerはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
         getMSSQLQuery(this, result, queryString).then((t) => {
           debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
+        }).catch((e) => {
+          reject(e)
         })
       } else if (isOracle(this.dbms())) {
         // OracleはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
         getOracleQuery(this, result, queryString).then((t) => {
           debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
+        }).catch((e) => {
+          reject(e)
         })
       } else {
         if (isMySQL(this.dbms())) {

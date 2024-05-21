@@ -1,5 +1,5 @@
 const OmniDb = require('./omnidb.js')
-const { escapeSqlString, replaceSpecialChars } = require('./sql.js')
+const { escapeSqlString, replaceSpecialChars, isSelectQuery } = require('./sql.js')
 const { debugLog } = require('./log.js')
 const short = require('short-uuid')
 
@@ -24,6 +24,7 @@ const ensureDoubleQuoted = (str) => {
   // ダブルクオーテーション内のダブルクオーテーションをエスケープしながらくくる
   return `"${str.replace(/"/g, '\\"')}"`
 }
+
 
 /**
  * SQL文字列のエスケープ
@@ -349,6 +350,19 @@ exports.setOracleColumns = setOracleColumns
  */
 const getOracleQuery = async (omnidb, result, sql) => {
   if (!result?.columns?.length > 0) {
+    let syntaxError = false
+    // Oracleの場合、SQLPrepareのエラーに載っていないエラーは取得できない
+    // 例えば,が足りない等の構文エラーがSQLPrepareではエラーにならず、SQLExecuteを実行しないと
+    // 取得できない。
+    // そのためSELECTでカラムなしの場合はエラーとする
+    if (isSelectQuery(sql)) {
+      syntaxError = true
+    }
+
+    if (syntaxError) {
+      throw new Error('SQL query failed. Please check your syntax.')
+    }
+
     // データがなければそのまま
     return result
   }
@@ -390,6 +404,31 @@ const getOracleQuery = async (omnidb, result, sql) => {
   return queryInfo
 }
 exports.getOracleQuery = getOracleQuery
+
+
+/**
+ * Oracleのクエリエラーを作成する
+ * @param {Error} e エラーオブジェクト
+ * @returns {Error} Oracleのクエリエラー
+ */
+const createOracleQueryError = (e) => {
+  let _e = e
+  if (e.message.includes('SQLNumResultCols ERROR (CODE:-1)')) {
+    // 出力カラムに以下のものが含まれると上記のエラーがOmniDbで発生し
+    // 回避方法はない
+    // - INTERVAL YEAR(2) TO MONTH
+    // - INTERVAL DAY(2) TO SECOND(6)
+    // - XMLTYPE
+    // - LONG RAW ※いける場合もある
+    // そのためメッセージを差し替える
+    _e = new Error('Possible issue with data types in selected columns. Please adjust your selection.')
+    // スタックも継承
+    _e.stack = e.stack
+  }
+  return _e
+}
+exports.createOracleQueryError = createOracleQueryError
+
 
 /**
  * Oracleのカレントスキーマを取得する

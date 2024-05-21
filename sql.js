@@ -28,3 +28,14 @@ const replaceSpecialChars = (inputString) => {
   return inputString.replace(/[\r\n\t]|\r\n/g, ' ')
 }
 exports.replaceSpecialChars = replaceSpecialChars
+
+
+/**
+ * SELECT文かどうかを判定します。
+ * @param {string} sql チェックするSQL
+ * @returns {boolean} SELECT文かどうか
+ */
+const isSelectQuery = (sql) => {
+  return /^\s*SELECT\s/i.test(sql);
+}
+exports.isSelectQuery = isSelectQuery
