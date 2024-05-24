@@ -18,13 +18,12 @@ const ensureDoubleQuoted = (str) => {
 
   // ダブルクオーテーションで括られているか？
   if (/^".*"$/.test(str)) {
-      return str
+    return str
   }
 
   // ダブルクオーテーション内のダブルクオーテーションをエスケープしながらくくる
   return `"${str.replace(/"/g, '\\"')}"`
 }
-
 
 /**
  * SQL文字列のエスケープ
@@ -179,15 +178,27 @@ const transformColumn = (targetColumn) => {
       // カラムサイズが無い場合は最大桁数(38)を設定
       column.size = 38
     }
+  } else if (column.type === 'SQL_TIMESTAMP') {
+    // query結果のサイズはSQL_TIMESTAMPのサイズが入ってこない
+    if (column.size === 0) {
+      // カラムサイズが無い場合は最大桁数(26)を設定
+      //
+      // YYYY/MM/DD HH:MI:SS.FFFFFF
+      // で26桁
+      //
+      // DATEとTIMEとTIMESTAMPの区別はサイズが入ってこないため
+      // できないので最大桁数(26)を設定
+      column.size = 26
+    }
   }
 
   return column
 }
 
 /**
- * MySQL/MariaDBかどうかを判定します。
+ * Oracleかどうかを判定します。
  * @param {string} dbms DBMS名
- * @returns {boolean} MySQL/MariaDbの場合はtrue
+ * @returns {boolean} Oracleの場合はtrue
  */
 const isOracle = (dbms) => {
   const regex = /^(Oracle)/i
@@ -405,7 +416,6 @@ const getOracleQuery = async (omnidb, result, sql) => {
 }
 exports.getOracleQuery = getOracleQuery
 
-
 /**
  * Oracleのクエリエラーを作成する
  * @param {Error} e エラーオブジェクト
@@ -428,7 +438,6 @@ const createOracleQueryError = (e) => {
   return _e
 }
 exports.createOracleQueryError = createOracleQueryError
-
 
 /**
  * Oracleのカレントスキーマを取得する
@@ -552,9 +561,13 @@ const cnvOraclePrimaryKeyCond = (cond) => {
   // OracleのPrimary Keyの条件は二重引用符で括らないと大文字扱いになるため必ず二重引用符で括る
   const schema = ensureDoubleQuoted(cond?.schema)
   const table = ensureDoubleQuoted(cond?.table)
-  return {
-    schema,
-    table
+  const result = { ...cond }
+  if (schema !== undefined) {
+    result.schema = schema
   }
+  if (table !== undefined) {
+    result.table = table
+  }
+  return result
 }
 exports.cnvOraclePrimaryKeyCond = cnvOraclePrimaryKeyCond

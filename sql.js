@@ -29,13 +29,23 @@ const replaceSpecialChars = (inputString) => {
 }
 exports.replaceSpecialChars = replaceSpecialChars
 
-
 /**
  * SELECT文かどうかを判定します。
  * @param {string} sql チェックするSQL
  * @returns {boolean} SELECT文かどうか
  */
 const isSelectQuery = (sql) => {
-  return /^\s*SELECT\s/i.test(sql);
+  return /^\s*SELECT\b/i.test(sql)
 }
 exports.isSelectQuery = isSelectQuery
+
+/**
+ * SQLを正規化します。
+ * @param {string} sql SQL
+ * @returns {string} 正規化されたSQL
+ */
+const normalizedQuery = (sql) => {
+  // SQLのコメントを削除する
+  return sql.replace(/\/\*[\s\S]*?\*\/|--.*$/gm, '').trim()
+}
+exports.normalizedQuery = normalizedQuery
