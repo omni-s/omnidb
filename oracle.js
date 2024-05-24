@@ -178,7 +178,7 @@ const transformColumn = (targetColumn) => {
       // カラムサイズが無い場合は最大桁数(38)を設定
       column.size = 38
     }
-  } else if (column.type === 'SQL_TIMESTAMP') {
+  } else if (column.type === 'SQL_TYPE_TIMESTAMP') {
     // query結果のサイズはSQL_TIMESTAMPのサイズが入ってこない
     if (column.size === 0) {
       // カラムサイズが無い場合は最大桁数(26)を設定
