@@ -35,7 +35,9 @@ exports.replaceSpecialChars = replaceSpecialChars
  * @returns {boolean} SELECT文かどうか
  */
 const isSelectQuery = (sql) => {
-  return /^\s*SELECT\b/i.test(sql)
+  // コメント除去してチェック
+  const _sql = normalizedQuery(sql)
+  return /^\s*SELECT\b/i.test(_sql)
 }
 exports.isSelectQuery = isSelectQuery
 
