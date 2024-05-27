@@ -1,5 +1,5 @@
 const OmniDb = require('./omnidb.js')
-const { escapeSqlString, replaceSpecialChars, isSelectQuery } = require('./sql.js')
+const { escapeSqlString, replaceSpecialChars, isSelectQuery, normalizedQuery } = require('./sql.js')
 const { debugLog } = require('./log.js')
 const short = require('short-uuid')
 
@@ -393,7 +393,8 @@ const getOracleQuery = async (omnidb, result, sql) => {
 
     // プレースホルダをOracleのネイティブなプレースホルダに変換
     // ※SQLの文字列として整形
-    const _sql = getEscString(convertPlaceHolder(sql))
+    // ※コメントも削除
+    const _sql = getEscString(convertPlaceHolder(normalizedQuery(sql)))
 
     //
     // 実行計画でSQL情報取得
