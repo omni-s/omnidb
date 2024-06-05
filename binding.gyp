@@ -17,12 +17,24 @@
           ]
         }],
         [ 'OS == "mac"', {
-          'include_dirs': [
-            '/usr/local/include'
-          ],
-          'libraries' : [
-            '-L/usr/local/lib',
-            '-lodbc'
+          'conditions': [
+            [ 'target_arch=="arm64"', {
+              'include_dirs': [
+                '/opt/homebrew/include'
+              ],
+              'libraries' : [
+                '-L/opt/homebrew/lib',
+                '-lodbc'
+              ],
+            }], ['target_arch=="x64"', {
+              'include_dirs': [
+                '/usr/local/include',
+              ],
+              'libraries' : [
+                '-L/usr/local/lib',
+                '-lodbc'
+              ],
+            }],
           ]
         }],
         [ 'OS=="win"', {
