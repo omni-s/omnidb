@@ -178,6 +178,29 @@ const transformColumn = (targetColumn) => {
       // カラムサイズが無い場合は最大桁数(38)を設定
       column.size = 38
     }
+  } else if (column.type === 'SQL_FLOAT') {
+    // query結果のサイズはSQL_FLOATのsizeが入ってこない
+    // columnsだと以下になっているため大きい値に合わせる
+    // REAL(SQL_FLOAT): size 19
+    // DOUBLE(SQL_FLOAT): size 38
+    // NUMBER(SQL_FLOAT): size 38
+    if (column.size === 0) {
+      column.size = 38
+    }
+  } else if (column.type === 'SQL_REAL') {
+    // query結果のサイズはSQL_REALのsizeが入ってこない
+    // columnsだと以下になっているため大きい値に合わせる
+    // BINARY_FLOAT(SQL_REAL): size 7, numPrec 10
+    if (column.size === 0) {
+      column.size = 7
+    }
+  } else if (column.type === 'SQL_DOUBLE') {
+    // query結果のサイズはSQL_DOUBLEのsizeが入ってこない
+    // columnsだと以下になっているため大きい値に合わせる
+    // BINARY_DOUBLE(SQL_DOUBLE): size 15, numPrec 10
+    if (column.size === 0) {
+      column.size = 15
+    }
   } else if (column.type === 'SQL_TYPE_TIMESTAMP') {
     // query結果のサイズはSQL_TIMESTAMPのサイズが入ってこない
     if (column.size === 0) {
