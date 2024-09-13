@@ -5,7 +5,7 @@ const debugLog = log.debugLog
 const genLogId = log.genLogId
 const getLogMsg = log.getLogMsg
 
-const { isAS400, getAS400Schemas, getAS400CurrentSchema } = require('./as400.js')
+const { isAS400, getAS400Schemas, getAS400CurrentSchema, setAS400Tables } = require('./as400.js')
 
 const {
   isPostgres,
@@ -378,6 +378,12 @@ class OmniDb {
       } else if (isOracle(this.dbms())) {
         // OracleはコメントがODBCから取得できないためSQLで取得する
         setOracleTables(this, tables).then((t) => {
+          debugLog('tables', '<res #2>', JSON.stringify(t), '<fid>', lid)
+          resolve(t)
+        })
+      } else if (isAS400(this.dbms())) {
+        // AS400はテーブルコメントがtablesからは取得できないので、SQLで取得する
+        setAS400Tables(this, tables).then((t) => {
           debugLog('tables', '<res #2>', JSON.stringify(t), '<fid>', lid)
           resolve(t)
         })

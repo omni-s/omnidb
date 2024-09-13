@@ -30,6 +30,18 @@ const replaceSpecialChars = (inputString) => {
 exports.replaceSpecialChars = replaceSpecialChars
 
 /**
+ * 全角半角スペースを削除する
+ * @param {string} str 文字列
+ * @returns {string} 全角半角スペースを削除した文字列
+ */
+const trimSpaces = (str) => {
+  if (!str) return str
+
+  return str.replace(/^[ \u3000]+|[ \u3000]+$/g, '')
+}
+exports.trimSpaces = trimSpaces
+
+/**
  * SELECT文かどうかを判定します。
  * @param {string} sql チェックするSQL
  * @returns {boolean} SELECT文かどうか
