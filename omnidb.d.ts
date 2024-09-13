@@ -176,4 +176,4 @@ declare class OmniDb {
   setLocale(category: string, locale: string): boolean
 }
 
-export = OmniDb
+export default OmniDb
