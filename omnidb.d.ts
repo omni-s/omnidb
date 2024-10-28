@@ -106,6 +106,30 @@ declare class OmniDb {
   static get debug(): boolean
 
   /**
+   * ログ取得関数を登録します。
+   * @param {Function} logFunction ログ取得関数
+   */
+  static setLogger(logger: (...args: any[]) => void): void
+
+  /**
+   * ログ取得関数を取得します。
+   * @returns {Function} ログ取得関数
+   */
+  static getLogger(): (...args: any[]) => void
+
+  /**
+   * ログに日時を含めるかを設定します。
+   * @param {boolean} value 日時を含めるかどうかの設定値
+   */
+  static set includeTimestamp(value: boolean): void
+
+  /**
+   * ログに日時を含めるかの設定を取得します。
+   * @returns {boolean} 日時を含めるかどうかの設定値
+   */
+  static get includeTimestamp(): boolean
+
+  /**
    * ODBCドライバ一覧を取得します。
    */
   drivers(): Promise<Array<string>>

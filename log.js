@@ -9,6 +9,18 @@ const signature = 'omnidb'
 exports.isDebug = process.env.DEBUG_OMNIDB ? true : false
 
 /**
+ * ログ取得関数
+ */
+exports.logger = (...args) => {
+  console.log(...args)
+}
+
+/**
+ * ログに日時を含めるかどうか
+ */
+exports.includeTimestamp = true
+
+/**
  * ログ用のIDを生成します。in/outなどでログを紐付けるために使用します。
  * @returns {string} ログ用のID
  */
@@ -40,8 +52,12 @@ exports.getLogMsg = (s) => {
  */
 exports.debugLog = (...args) => {
   if (this.isDebug) {
-    const now = new Date()
-    const time = now.toLocaleTimeString() + '.' + String(now.getMilliseconds()).padStart(3, '0')
-    console.log(`[${signature}] ${time} :`, ...args)
+    if (this.includeTimestamp) {
+      const now = new Date()
+      const time = now.toLocaleTimeString() + '.' + String(now.getMilliseconds()).padStart(3, '0')
+      this.logger(`[${signature}] ${time} :`, ...args)
+    } else {
+      this.logger(`[${signature}]`, ...args)
+    }
   }
 }

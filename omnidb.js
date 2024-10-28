@@ -165,6 +165,38 @@ class OmniDb {
   }
 
   /**
+   * ログ取得関数の設定
+   * @param {Function} value ログ取得関数
+   */
+  static set logger(value) {
+    log.logger = value
+  }
+
+  /**
+   * ログ取得関数の取得
+   * @returns {Function} ログ取得関数
+   */
+  static get logger() {
+    return log.logger
+  }
+
+  /**
+   * ログに日時を含めるかどうかの設定
+   * @param {boolean} value ログに日時を含めるかどうかの設定値
+   */
+  static set includeTimestamp(value) {
+    log.includeTimestamp = value
+  }
+
+  /**
+   * ログに日時を含めるかどうかの取得
+   * @returns {boolean} ログに日時を含めるかどうかの設定値
+   */
+  static get includeTimestamp() {
+    return log.includeTimestamp
+  }
+
+  /**
    * ODBCドライバ一覧を取得します。
    * @returns {Array<string>} ODBCドライバ一覧
    * @async
@@ -457,7 +489,7 @@ class OmniDb {
       if (isOracle(this.dbms())) {
         _condition = cnvOraclePrimaryKeyCond(_condition)
       }
-      
+
       // 主キー情報を取得する
       let keys = JSON.parse(this._native.primaryKeys(_condition))
       if (isMySQL(this.dbms())) {
@@ -504,28 +536,34 @@ class OmniDb {
       }
       if (isPostgres(this.dbms())) {
         // PostgreSQLはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
-        getPostgresQuery(this, result).then((t) => {
-          debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
-          resolve(t)
-        }).catch((e) => {
-          reject(e)
-        })
+        getPostgresQuery(this, result)
+          .then((t) => {
+            debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
+            resolve(t)
+          })
+          .catch((e) => {
+            reject(e)
+          })
       } else if (isMSSQL(this.dbms())) {
         // SQL ServerはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
-        getMSSQLQuery(this, result, queryString).then((t) => {
-          debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
-          resolve(t)
-        }).catch((e) => {
-          reject(e)
-        })
+        getMSSQLQuery(this, result, queryString)
+          .then((t) => {
+            debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
+            resolve(t)
+          })
+          .catch((e) => {
+            reject(e)
+          })
       } else if (isOracle(this.dbms())) {
         // OracleはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
-        getOracleQuery(this, result, queryString).then((t) => {
-          debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
-          resolve(t)
-        }).catch((e) => {
-          reject(e)
-        })
+        getOracleQuery(this, result, queryString)
+          .then((t) => {
+            debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
+            resolve(t)
+          })
+          .catch((e) => {
+            reject(e)
+          })
       } else {
         if (isMySQL(this.dbms())) {
           result = getMySQLQuery(result)
