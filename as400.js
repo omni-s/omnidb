@@ -42,16 +42,6 @@ const getAS400Schemas = async (omnidb) => {
       remarks: trimSpaces(rec[remarksIdx]) || '',
     }
   })
-
-  const current = await getAS400CurrentSchema(omnidb)
-  if (current && !schemas.includes(current)) {
-    // カレントスキーマが取得でき、スキーマ一覧に含まれない場合は追加
-    schemas.push({
-      catalog: '',
-      name: current,
-      remarks: '',
-    })
-  }
   return schemas
 }
 exports.getAS400Schemas = getAS400Schemas
@@ -79,7 +69,6 @@ const setAS400Tables = async (omnidb, tables) => {
   if (!tables || tables.length == 0) {
     return tables
   }
-
 
   // 検索するテーブル一覧を作成
   const search = tables
