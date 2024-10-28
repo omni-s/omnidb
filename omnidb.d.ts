@@ -109,19 +109,19 @@ declare class OmniDb {
    * ログ取得関数を登録します。
    * @param {Function} logFunction ログ取得関数
    */
-  static setLogger(logger: (...args: any[]) => void): void
+  static set logger(logger: (...args: any[]) => void)
 
   /**
    * ログ取得関数を取得します。
    * @returns {Function} ログ取得関数
    */
-  static getLogger(): (...args: any[]) => void
+  static get logger(): (...args: any[]) => void
 
   /**
    * ログに日時を含めるかを設定します。
    * @param {boolean} value 日時を含めるかどうかの設定値
    */
-  static set includeTimestamp(value: boolean): void
+  static set includeTimestamp(value: boolean)
 
   /**
    * ログに日時を含めるかの設定を取得します。
