@@ -74,6 +74,51 @@ export interface Column {
 }
 
 /**
+ * queryのカラム情報
+ */
+export interface QueryColumn {
+  name: string
+  label?: string
+  type: string
+  typeClass: 'String'
+  nullable: boolean
+  autoIncliment: boolean
+  size: number
+  octetLength: number
+  decimalDigits: number
+  catalog: string
+  schema: string
+  table: string
+  column: string
+}
+
+/**
+ * queryのパラメータ情報
+ */
+export interface QueryParam {
+  decimalDigits: number
+  nullable: boolean
+  size: number
+  type: string
+  typeClass: string
+}
+
+/**
+ * queryのオプション
+ */
+export interface QueryOptions {
+  label?: boolean
+}
+
+/**
+ * queryの情報
+ */
+export interface QueryInfo {
+  columns: Array<QueryColumn>
+  params: Array<QueryParam>
+}
+
+/**
  * 主キー情報
  */
 export interface PrimaryKey {
@@ -182,7 +227,7 @@ declare class OmniDb {
   /**
    * SQLの情報を返します。
    */
-  query(queryString: string, options?: object): Promise<any>
+  query(queryString: string, options?: QueryOptions): Promise<QueryInfo>
 
   /**
    * SQLを実行します。
