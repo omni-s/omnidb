@@ -17,6 +17,27 @@
           ]
         }],
         [ 'OS == "mac"', {
+          'conditions': [
+            [ 'target_arch=="arm64"', {
+              'include_dirs': [
+                '/opt/homebrew/include'
+              ],
+              'libraries' : [
+                '-L/opt/homebrew/lib',
+                '-lodbc'
+              ],
+            }], ['target_arch=="x64"', {
+              'include_dirs': [
+                '/usr/local/include',
+              ],
+              'libraries' : [
+                '-L/usr/local/lib',
+                '-lodbc'
+              ],
+            }],
+          ]
+        }],
+        [ 'OS == "freebsd"', {
           'include_dirs': [
             '/usr/local/include'
           ],
@@ -43,6 +64,10 @@
               'cflags' : ['-std=c++0x', '-DNAPI_DISABLE_CPP_EXCEPTIONS', '-Wall', '-Wextra', '-Wno-unused-parameter', '-I/QOpenSys/usr/include', '-I/QOpenSys/pkgs/include']
             }]
           ]
+        }],
+        [ 'OS=="os400"', {
+          'ldflags': ['-Wl,-brtl,-blibpath:/QOpenSys/pkgs/lib', '-lodbc'],
+          'cflags' : ['-std=c++0x', '-DNAPI_DISABLE_CPP_EXCEPTIONS', '-Wall', '-Wextra', '-Wno-unused-parameter', '-I/QOpenSys/usr/include', '-I/QOpenSys/pkgs/include']
         }]
       ]
     }
