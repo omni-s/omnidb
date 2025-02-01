@@ -44,13 +44,13 @@ typedef std::wstringstream OStringStream;
 
 std::string wide_to_single(const std::wstring &wstr)
 {
-  // utf-8専用。windowsだと切り替えないと駄目
-  if (wstr.empty())
-    return std::string();
-  int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
-  std::string strTo(size_needed, 0);
-  WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
-  return strTo;
+    // utf-8専用。windowsだと切り替えないと駄目
+    if (wstr.empty())
+        return std::string();
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+    std::string strTo(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
+    return strTo;
 }
 #else
 //
@@ -79,88 +79,90 @@ typedef std::stringstream OStringStream;
 class OmniDb : public Napi::ObjectWrap<OmniDb>
 {
 public:
-  // 初期化
-  static Napi::Object Init(Napi::Env env, Napi::Object exports);
-  // OmniDb作成
-  static Napi::Object NewInstance(Napi::Env env, const Napi::CallbackInfo &info);
+    // 初期化
+    static Napi::Object Init(Napi::Env env, Napi::Object exports);
+    // OmniDb作成
+    static Napi::Object NewInstance(Napi::Env env, const Napi::CallbackInfo &info);
 
-  OmniDb(const Napi::CallbackInfo &info);
-  ~OmniDb() override;
+    OmniDb(const Napi::CallbackInfo &info);
+    ~OmniDb() override;
 
-  // DB接続
-  Napi::Value Connect(const Napi::CallbackInfo &info);
-  // DB切断
-  Napi::Value Disconnect(const Napi::CallbackInfo &info);
-  // ドライバ情報取得
-  Napi::Value Drivers(const Napi::CallbackInfo &info);
-  // 接続ドライバ名取得
-  Napi::Value Driver(const Napi::CallbackInfo &info);
-  // DBMS名取得
-  Napi::Value Dbms(const Napi::CallbackInfo &info);
-  // テーブル情報取得
-  Napi::Value Tables(const Napi::CallbackInfo &info);
-  // カラム情報取得
-  Napi::Value Columns(const Napi::CallbackInfo &info);
-  // 主キー情報取得
-  Napi::Value PrimaryKeys(const Napi::CallbackInfo &info);
-  // SQL情報取得
-  Napi::Value Query(const Napi::CallbackInfo &info);
-  // SQL直接実行 ※成否のみ返却
-  Napi::Value Execute(const Napi::CallbackInfo &info);
-  // レコード取得(SQL実行)
-  Napi::Value Records(const Napi::CallbackInfo &info);
-  // ロケール設定
-  Napi::Value SetLocale(const Napi::CallbackInfo &info);
+    // DB接続
+    Napi::Value Connect(const Napi::CallbackInfo &info);
+    // DB切断
+    Napi::Value Disconnect(const Napi::CallbackInfo &info);
+    // ドライバ情報取得
+    Napi::Value Drivers(const Napi::CallbackInfo &info);
+    // 接続ドライバ名取得
+    Napi::Value Driver(const Napi::CallbackInfo &info);
+    // DBMS名取得
+    Napi::Value Dbms(const Napi::CallbackInfo &info);
+    // テーブル情報取得
+    Napi::Value Tables(const Napi::CallbackInfo &info);
+    // カラム情報取得
+    Napi::Value Columns(const Napi::CallbackInfo &info);
+    // 主キー情報取得
+    Napi::Value PrimaryKeys(const Napi::CallbackInfo &info);
+    // SQL情報取得
+    Napi::Value Query(const Napi::CallbackInfo &info);
+    // SQL直接実行 ※成否のみ返却
+    Napi::Value Execute(const Napi::CallbackInfo &info);
+    // レコード取得(SQL実行)
+    Napi::Value Records(const Napi::CallbackInfo &info);
+    // ロケール設定
+    Napi::Value SetLocale(const Napi::CallbackInfo &info);
+    // サポートドライバ取得
+    Napi::Value IsSupported(const Napi::CallbackInfo &info);
 
 private:
-  // 接続ハンドル
-  SQLHDBC m_hOdbc;
-  // ODBC環境
-  SQLHENV m_hEnv;
+    // 接続ハンドル
+    SQLHDBC m_hOdbc;
+    // ODBC環境
+    SQLHENV m_hEnv;
 
-  // DB切断
-  void _Disconnect();
+    // DB切断
+    void _Disconnect();
 
-  // ODBCエラーメッセージ取得
-  OString ErrorMessage(const OString &api, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError);
+    // ODBCエラーメッセージ取得
+    OString ErrorMessage(const OString &api, SQLRETURN retcode, SQLSMALLINT handleType, SQLHANDLE hError);
 
-  // SQL型名取得
-  static OString GetTypeName(SQLSMALLINT type);
-  // SQL型属性
-  static OString GetTypeClassName(SQLSMALLINT type);
+    // SQL型名取得
+    static OString GetTypeName(SQLSMALLINT type);
+    // SQL型属性
+    static OString GetTypeClassName(SQLSMALLINT type);
 
-  // 型エラー作成(NAPI)
-  static Napi::TypeError CreateTypeError(napi_env env, const OString &msg);
-  // エラー作成(NAPI)
-  static Napi::Error CreateError(napi_env env, const OString &msg);
+    // 型エラー作成(NAPI)
+    static Napi::TypeError CreateTypeError(napi_env env, const OString &msg);
+    // エラー作成(NAPI)
+    static Napi::Error CreateError(napi_env env, const OString &msg);
 
-  // 空文字列判定
-  static bool IsBlank(Napi::String v);
+    // 空文字列判定
+    static bool IsBlank(Napi::String v);
 
-  // NAPI文字列→SQLCHAR変換
-  static SQLTCHAR *NapiStringToSQLTCHAR(Napi::String string);
+    // NAPI文字列→SQLCHAR変換
+    static SQLTCHAR *NapiStringToSQLTCHAR(Napi::String string);
 
-  // 左空白削除
-  static OString leftTrim(const OString &str)
-  {
-    OString res = str;
-    res.erase(0, res.find_first_not_of(_O(" ")));
-    return res;
-  }
+    // 左空白削除
+    static OString leftTrim(const OString &str)
+    {
+        OString res = str;
+        res.erase(0, res.find_first_not_of(_O(" ")));
+        return res;
+    }
 
-  // 右空白削除
-  static OString rightTrim(const OString &str)
-  {
-    OString res = str;
-    res.erase(res.find_last_not_of(_O(" ")) + 1);
-    return res;
-  }
+    // 右空白削除
+    static OString rightTrim(const OString &str)
+    {
+        OString res = str;
+        res.erase(res.find_last_not_of(_O(" ")) + 1);
+        return res;
+    }
 
-  // 前後空白削除
-  static OString trimString(const OString &str)
-  {
-    return leftTrim(rightTrim(str));
-  }
+    // 前後空白削除
+    static OString trimString(const OString &str)
+    {
+        return leftTrim(rightTrim(str));
+    }
 };
 
 #endif

@@ -621,6 +621,15 @@ class OmniDb {
   setLocale(category, locale) {
     return this._native.setLocale(category, locale)
   }
+
+  /**
+   * 関数サポート確認
+   * @param {string} functionName 関数名
+   * @returns {boolean} 関数サポート確認結果
+   */
+  isSupported(functionName) {
+    return this._native.isSupported(functionName)
+  }
 }
 
 module.exports = OmniDb

@@ -243,6 +243,11 @@ declare class OmniDb {
    * ロケールを設定します。
    */
   setLocale(category: string, locale: string): boolean
+
+  /**
+   * 関数サポート確認
+   */
+  isSupported(functionName: string): boolean
 }
 
 export default OmniDb
