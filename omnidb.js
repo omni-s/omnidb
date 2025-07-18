@@ -5,7 +5,7 @@ const debugLog = log.debugLog
 const genLogId = log.genLogId
 const getLogMsg = log.getLogMsg
 
-const { isAS400, getAS400Schemas, getAS400CurrentSchema, setAS400Tables } = require('./as400.js')
+const { isAS400, getAS400Schemas, getAS400CurrentSchema, setAS400Tables, setAS400Columns, getAS400Query } = require('./as400.js')
 
 const {
   isPostgres,
@@ -463,6 +463,12 @@ class OmniDb {
           debugLog('columns', '<res #2>', JSON.stringify(c), '<fid>', lid)
           resolve(c)
         })
+      } else if (isAS400(this.dbms())) {
+        // AS400はカラムのGRAPHIC/VARG型のカラムでUCS-2の場合はWCHAR/WVARCHARに変換する
+        setAS400Columns(this, columns).then((c) => {
+          debugLog('columns', '<res #2>', JSON.stringify(c), '<fid>', lid)
+          resolve(c)
+        })
       } else {
         if (isMySQL(this.dbms())) {
           columns = getMySQLColumns(columns)
@@ -557,6 +563,16 @@ class OmniDb {
       } else if (isOracle(this.dbms())) {
         // OracleはODBCから取得できるカラム情報がおかしいため一部はSQLで取得する
         getOracleQuery(this, result, queryString)
+          .then((t) => {
+            debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
+            resolve(t)
+          })
+          .catch((e) => {
+            reject(e)
+          })
+      } else if (isAS400(this.dbms())) {
+        // AS400はGRAPHIC/VARG型のカラムでUCS-2の場合はWCHAR/WVARCHARに変換する
+        getAS400Query(this, result, queryString)
           .then((t) => {
             debugLog('query', '<res #2>', JSON.stringify(t), '<fid>', lid)
             resolve(t)

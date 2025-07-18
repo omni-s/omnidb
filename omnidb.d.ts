@@ -90,6 +90,8 @@ export interface QueryColumn {
   schema: string
   table: string
   column: string
+  guessedSchema?: string
+  guessedTable?: string
 }
 
 /**
